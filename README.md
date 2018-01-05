@@ -1,11 +1,9 @@
-# PyTorch FFI package
+# Capsule Layer
 
-This example shows how to structure the code to create an ffi package for
-PyTorch. It can be later distributed via pip.
+An implementation of Capsule Layer by creating a ffi package for PyTorch.
 
-### Required files:
+### Usage
+``
+pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
+``
 
-* `setup.py` - setuptools file, that defines package metadata and some extension
-    options
-* `my_package/build.py` - cffi build file. Defines the extensions and builds
-    them if executed.
