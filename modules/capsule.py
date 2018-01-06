@@ -86,7 +86,7 @@ class CapsuleConv2d(Module):
         if input.dim() != 4:
             raise ValueError("Expected 4D tensor as input, got {}D tensor instead.".format(input.dim()))
 
-        return F.MyAddFunction(input)
+        return F.CapsuleConv2d()(input)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -133,7 +133,7 @@ class CapsuleLinear(nn.Module):
         self.weight = Parameter(torch.randn(out_capsules, in_capsules, in_length, out_length))
 
     def forward(self, input):
-        return F.MyAddFunction(input)
+        return F.CapsuleLinear()(input)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
