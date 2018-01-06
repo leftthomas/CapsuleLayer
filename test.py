@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from my_package.modules.add import MyAddModule
+
+from modules.add import MyAddModule
+
 
 class MyNetwork(nn.Module):
     def __init__(self):

@@ -2,8 +2,15 @@
 
 An implementation of Capsule Layer by creating a ffi package for PyTorch.
 
+- src: C source code
+- functions: the autograd functions
+- modules: code of the nn module
+- build.py: a small file that compiles the module to be ready to use
+- test.py: an example file that loads and uses the extension
+
 ### Usage
-``
-pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
-``
+```
+python build.py
+python test.py
+```
 
