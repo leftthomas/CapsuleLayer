@@ -1,6 +1,6 @@
 #include <TH/TH.h>
 
-int conv2d_forward(THFloatTensor *input, THFloatTensor *output)
+int conv2d_forward(THFloatTensor *input, THFloatTensor *weight, THFloatTensor *stride, THFloatTensor *padding, THFloatTensor *num_iterations, THFloatTensor *output)
 {
   THFloatTensor_resizeAs(output, input);
   THFloatTensor_cadd(output, input, 1.0, input);
