@@ -8,6 +8,20 @@ An implementation of Capsule Layer by creating a ffi package for PyTorch.
 - build.py: a small file that compiles the module to be ready to use
 - test.py: an example file that loads and uses the extension
 
+### Requirements
+* setuptools
+```
+pip install setuptools
+```
+* fastrlock
+```
+pip install fastrlock
+```
+* CuPy
+```
+pip install cupy
+```
+
 ### Usage
 ```
 python build.py
