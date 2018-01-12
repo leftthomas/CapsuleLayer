@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
-import capsule_layer.functional as F
+import capsule_layer as CL
 
 
 class CapsuleConv2d(nn.Module):
@@ -43,12 +43,12 @@ class CapsuleConv2d(nn.Module):
     ------------------------------------------------------------------------------------------------
     Examples::
 
-        >>> from capsule_layer import capsule
+        >>> from capsule_layer import CapsuleConv2d
         >>> from torch.autograd import Variable
         >>> # With square kernels and equal stride
-        >>> m = capsule.CapsuleConv2d(16, 33, 3, 4, 3, stride=2)
+        >>> m = CapsuleConv2d(16, 33, 3, 4, 3, stride=2)
         >>> # non-square kernels and unequal stride and with padding
-        >>> m1 = capsule.CapsuleConv2d(16, 33, (3, 5), 4, 3, stride=(2, 1), padding=(4, 2))
+        >>> m1 = CapsuleConv2d(16, 33, (3, 5), 4, 3, stride=(2, 1), padding=(4, 2))
         >>> input = Variable(torch.randn(20, 16, 50, 100))
         >>> output = m(input)
         >>> print(output.size())
@@ -82,10 +82,7 @@ class CapsuleConv2d(nn.Module):
             torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, in_length, out_length))
 
     def forward(self, input):
-        if input.dim() != 4:
-            raise ValueError("Expected 4D tensor as input, got {}D tensor instead.".format(input.dim()))
-
-        return F.CapsuleConv2d()(input, self.weight, self.stride, self.padding, self.num_iterations)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.num_iterations)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -115,9 +112,9 @@ class CapsuleLinear(nn.Module):
              (out_capsules, in_capsules, in_length, out_length)
 
      Examples::
-         >>> from capsule_layer import capsule
+         >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
-         >>> m = capsule.CapsuleLinear(20, 30, 8, 16)
+         >>> m = CapsuleLinear(20, 30, 8, 16)
          >>> input = Variable(torch.randn(128, 20, 8))
          >>> output = m(input)
          >>> print(output.size())
@@ -132,7 +129,7 @@ class CapsuleLinear(nn.Module):
         self.weight = Parameter(torch.randn(out_capsules, in_capsules, in_length, out_length))
 
     def forward(self, input):
-        return F.CapsuleLinear()(input, self.weight, self.num_iterations)
+        return CL.capsule_linear(input, self.weight, self.num_iterations)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
