@@ -1,14 +1,14 @@
 # Capsule Layer
 
-An implementation of Capsule Layer by creating a ffi package for PyTorch.
+CuPy implementations of fused PyTorch Capsule Layer.
 
-- src: C source code
-- functions: the autograd functions
-- modules: code of the nn module
-- build.py: a small file that compiles the module to be ready to use
-- test.py: an example file that loads and uses the extension
+The purpose of this package is to contain CUDA ops written in Python with CuPy, which is not a PyTorch dependency.
 
 ### Requirements
+* PyTorch
+```
+conda install pytorch torchvision cuda90 -c pytorch
+```
 * setuptools
 ```
 pip install setuptools
@@ -22,9 +22,19 @@ pip install fastrlock
 pip install cupy
 ```
 
-### Usage
+### Installation
 ```
-python build.py
-python test.py
+pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
 
+### Example
+```
+import torch
+from torch.autograd import Variable
+from capsule_layer.modules import CapsuleConv2d
+x = Variable(torch.randn(1,4,5,5).cuda())
+
+module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, 
+                          in_length=1, out_length=4, stride=1, padding=1).cuda()
+y = module(x)
+```
