@@ -38,3 +38,7 @@ module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3,
                           in_length=1, out_length=4, stride=1, padding=1).cuda()
 y = module(x)
 ```
+
+## Credits
+Referenced CuPy fused PyTorch:
+[PyINN by @szagoruyko](https://github.com/szagoruyko/pyinn)

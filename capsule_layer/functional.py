@@ -1,7 +1,10 @@
+import torch
 from torch.autograd import Function
 from torch.nn.modules.utils import _pair
 
 from capsule_layer.capsule_cpu import capsule_conv2d_cpu, capsule_linear_cpu
+from capsule_layer.utils import load_kernel, Dtype, Stream, CUDA_NUM_THREADS, GET_BLOCKS, capsule_linear_kernels, \
+    capsule_conv2d_kernels
 
 
 class CapsuleConv2d(Function):
@@ -27,7 +30,7 @@ class CapsuleConv2d(Function):
         n = output.numel()
 
         with torch.cuda.device_of(input):
-            f = load_kernel('conv2d_dw_forward_kernel', _conv2d_depthwise_kernel, Dtype=Dtype(input), nthreads=n,
+            f = load_kernel('capsule_conv2d_forward', capsule_conv2d_kernels, Dtype=Dtype(input), nthreads=n,
                             num=batch_size, channels=channels,
                             bottom_height=height, bottom_width=width,
                             top_height=output_h, top_width=output_w,
@@ -58,13 +61,22 @@ class CapsuleLinear(Function):
             raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
         if not (input.is_cuda and weight.is_cuda):
             raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
-        return output
+
+        n, out_capsules, out_length = input.size(0), weight.size(0), weight.size(-1)
+        with torch.cuda.device_of(input):
+            out = input.new(n, out_capsules, out_length)
+            f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input))
+            f(args=[out.data_ptr(), input.data_ptr(), weight.data_ptr(), self.num_iterations],
+              block=(CUDA_NUM_THREADS, 1, 1),
+              grid=(GET_BLOCKS(input.numel()), 1, 1),
+              stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
+        return out
 
     def backward(self, grad_output):
         return grad_input
 
 
-def capsule_cov2d(input, weight, stride, padding, num_iterations):
+def capsule_cov2d(input, weight, stride=1, padding=0, num_iterations=3):
     if input.size(1) != weight.size(1) * weight.size(4):
         raise ValueError("Expected input tensor has the same in_channels as weight, got {} in_channels in input tensor,"
                          " {} in_channels in weight.".format(input.size(1), weight.size(1) * weight.size(4)))
@@ -75,7 +87,7 @@ def capsule_cov2d(input, weight, stride, padding, num_iterations):
     return out
 
 
-def capsule_linear(input, weight, num_iterations):
+def capsule_linear(input, weight, num_iterations=3):
     if input.size(1) != weight.size(1):
         raise ValueError("Expected input tensor has the same in_capsules as weight, got {} "
                          "in_capsules in input tensor, {} in_capsules in weight.".format(input.size(1), weight.size(1)))
