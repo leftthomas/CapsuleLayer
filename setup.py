@@ -18,12 +18,7 @@ setup_info = dict(
     # Package info
     packages=find_packages(exclude=('test',)),
 
-    zip_safe=True,
-
-    install_requires=[
-        'torch',
-        'cupy',
-    ]
+    zip_safe=True
 )
 
-setup(**setup_info)
+setup(**setup_info, install_requires=['torch', 'cupy'])

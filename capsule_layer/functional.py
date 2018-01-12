@@ -1,6 +1,5 @@
-from torch.autograd import Function
-
 from _ext import capsule_lib
+from torch.autograd import Function
 
 
 class CapsuleConv2d(Function):
@@ -37,3 +36,11 @@ class CapsuleLinear(Function):
         else:
             capsule_lib.linear_backward_cuda(grad_output, grad_input)
         return grad_input
+
+
+def capsule_cov2d(input, weight, stride, padding, num_iterations):
+    pass
+
+
+def capsule_linear(input, weight, num_iterations):
+    pass

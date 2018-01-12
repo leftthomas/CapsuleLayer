@@ -1,13 +1,12 @@
 import torch
 from torch import nn
-from torch.nn.modules.module import Module
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
-import functions.functional as F
+import capsule_layer.functional as F
 
 
-class CapsuleConv2d(Module):
+class CapsuleConv2d(nn.Module):
     r"""Applies a 2D capsule convolution over an input signal composed of several input
     planes.
 
@@ -44,7 +43,7 @@ class CapsuleConv2d(Module):
     ------------------------------------------------------------------------------------------------
     Examples::
 
-        >>> from modules import capsule
+        >>> from capsule_layer import capsule
         >>> from torch.autograd import Variable
         >>> # With square kernels and equal stride
         >>> m = capsule.CapsuleConv2d(16, 33, 3, 4, 3, stride=2)
@@ -116,7 +115,7 @@ class CapsuleLinear(nn.Module):
              (out_capsules, in_capsules, in_length, out_length)
 
      Examples::
-         >>> from modules import capsule
+         >>> from capsule_layer import capsule
          >>> from torch.autograd import Variable
          >>> m = capsule.CapsuleLinear(20, 30, 8, 16)
          >>> input = Variable(torch.randn(128, 20, 8))
