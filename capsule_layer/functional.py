@@ -1,6 +1,8 @@
 from torch.autograd import Function
 from torch.nn.modules.utils import _pair
 
+from capsule_layer.capsule_cpu import capsule_conv2d_cpu, capsule_linear_cpu
+
 
 class CapsuleConv2d(Function):
 
@@ -14,7 +16,7 @@ class CapsuleConv2d(Function):
         if input.dim() != 4:
             raise ValueError("Expected 4D tensor as input, got {}D tensor instead.".format(input.dim()))
         if not (input.is_cuda and weight.is_cuda):
-            raise ValueError("Expected input tensor and weight tensor be in cuda, got cpu tensor instead.")
+            raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
 
         batch_size, channels, height, width = input.size()
         kernel_h, kernel_w = weight.size()[2:]
@@ -55,7 +57,7 @@ class CapsuleLinear(Function):
         if input.dim() != 3:
             raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
         if not (input.is_cuda and weight.is_cuda):
-            raise ValueError("Expected input tensor and weight tensor be in cuda, got cpu tensor instead.")
+            raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
         return output
 
     def backward(self, grad_output):
@@ -69,8 +71,7 @@ def capsule_cov2d(input, weight, stride, padding, num_iterations):
     if input.is_cuda:
         out = CapsuleConv2d(stride, padding, num_iterations)(input, weight)
     else:
-        pass
-        # TODO
+        out = capsule_conv2d_cpu(input, weight, stride, padding, num_iterations)
     return out
 
 
@@ -84,6 +85,5 @@ def capsule_linear(input, weight, num_iterations):
     if input.is_cuda:
         out = CapsuleLinear(num_iterations)(input, weight)
     else:
-        pass
-        # TODO
+        out = capsule_linear_cpu(input, weight, num_iterations)
     return out
