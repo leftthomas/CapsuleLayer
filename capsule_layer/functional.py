@@ -21,28 +21,29 @@ class CapsuleConv2d(Function):
         if not (input.is_cuda and weight.is_cuda):
             raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
 
-        batch_size, channels, height, width = input.size()
-        kernel_h, kernel_w = weight.size()[2:]
-        output_h = int((height + 2 * self.padding[0] - kernel_h) / self.stride[0] + 1)
-        output_w = int((width + 2 * self.padding[1] - kernel_w) / self.stride[1] + 1)
-
-        output = input.new(batch_size, channels, output_h, output_w)
-        n = output.numel()
+        kernel_size = (weight.size(2), weight.size(3))
+        in_length = weight.size(4)
+        out_length = weight.size(-1)
+        batch_size, in_channels, in_height, in_width = input.size()
+        out_height = 1 + (in_height + 2 * self.padding[0] - kernel_size[0]) // self.stride[0]
+        out_width = 1 + (in_width + 2 * self.padding[1] - kernel_size[1]) // self.stride[1]
+        out_channels = weight.size(0) * out_length
 
         with torch.cuda.device_of(input):
+            output = input.new(batch_size, out_channels, out_height, out_width)
+            n = output.numel()
             f = load_kernel('capsule_conv2d_forward', capsule_conv2d_kernels, Dtype=Dtype(input), nthreads=n,
-                            num=batch_size, channels=channels,
-                            bottom_height=height, bottom_width=width,
-                            top_height=output_h, top_width=output_w,
-                            kernel_h=kernel_h, kernel_w=kernel_w,
+                            num=batch_size, in_channels=in_channels,
+                            in_height=in_height, in_width=in_width,
+                            out_height=out_height, out_width=out_width,
+                            in_length=in_length, out_length=out_length,
+                            kernel_h=kernel_size[0], kernel_w=kernel_size[1],
                             stride_h=self.stride[0], stride_w=self.stride[1],
                             pad_h=self.padding[0], pad_w=self.padding[1])
             f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               block=(CUDA_NUM_THREADS, 1, 1),
               grid=(GET_BLOCKS(n), 1, 1),
               stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
-
-        self.save_for_backward(input, weight)
         return output
 
     def backward(self, grad_output):
