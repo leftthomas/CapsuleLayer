@@ -1,8 +1,5 @@
 # Capsule Layer
-
 CuPy implementations of fused PyTorch Capsule Layer.
-
-The purpose of this package is to contain CUDA ops written in Python with CuPy, which is not a PyTorch dependency.
 
 ### Requirements
 * PyTorch
@@ -27,15 +24,25 @@ pip install cupy
 pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
 
-### Example
+### Examples
+* CapsuleConv2d
 ```
 import torch
 from torch.autograd import Variable
 from capsule_layer.modules import CapsuleConv2d
-x = Variable(torch.randn(1,4,5,5).cuda())
+x = Variable(torch.randn(4,1,5,7).cuda())
 
-module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, 
-                          in_length=1, out_length=4, stride=1, padding=1).cuda()
+module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, in_length=1, out_length=4, padding=1).cuda()
+y = module(x)
+```
+* CapsuleLinear
+```
+import torch
+from torch.autograd import Variable
+from capsule_layer.modules import CapsuleLinear
+x = Variable(torch.randn(8,128,16).cuda())
+
+module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16).cuda()
 y = module(x)
 ```
 
