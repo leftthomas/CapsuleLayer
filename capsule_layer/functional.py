@@ -36,7 +36,6 @@ class CapsuleConv2d(Function):
                             top_height=output_h, top_width=output_w,
                             kernel_h=kernel_h, kernel_w=kernel_w,
                             stride_h=self.stride[0], stride_w=self.stride[1],
-                            dilation_h=self.dilation[0], dilation_w=self.dilation[1],
                             pad_h=self.padding[0], pad_w=self.padding[1])
             f(block=(CUDA_NUM_THREADS, 1, 1),
               grid=(GET_BLOCKS(n), 1, 1),
@@ -47,7 +46,7 @@ class CapsuleConv2d(Function):
         return output
 
     def backward(self, grad_output):
-        return grad_input
+        return grad_output
 
 
 class CapsuleLinear(Function):
@@ -62,18 +61,22 @@ class CapsuleLinear(Function):
         if not (input.is_cuda and weight.is_cuda):
             raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
 
-        n, out_capsules, out_length = input.size(0), weight.size(0), weight.size(-1)
+        batch_size, in_capsules, in_length = input.size()
+        out_capsules, out_length = weight.size(0), weight.size(-1)
         with torch.cuda.device_of(input):
-            out = input.new(n, out_capsules, out_length)
-            f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input))
-            f(args=[out.data_ptr(), input.data_ptr(), weight.data_ptr(), self.num_iterations],
+            output = input.new(batch_size, out_capsules, out_length)
+            n = output.numel()
+            f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
+                            num=batch_size, in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                            out_length=out_length, num_iterations=self.num_iterations)
+            f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               block=(CUDA_NUM_THREADS, 1, 1),
-              grid=(GET_BLOCKS(input.numel()), 1, 1),
+              grid=(GET_BLOCKS(n), 1, 1),
               stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
-        return out
+        return output
 
     def backward(self, grad_output):
-        return grad_input
+        return grad_output
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, num_iterations=3):
