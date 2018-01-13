@@ -23,8 +23,8 @@ class CapsuleConv2d(Function):
 
         batch_size, channels, height, width = input.size()
         kernel_h, kernel_w = weight.size()[2:]
-        output_h = int((height + 2 * self.padding[0] - (self.dilation[0] * (kernel_h - 1) + 1)) / self.stride[0] + 1)
-        output_w = int((width + 2 * self.padding[1] - (self.dilation[1] * (kernel_w - 1) + 1)) / self.stride[1] + 1)
+        output_h = int((height + 2 * self.padding[0] - kernel_h) / self.stride[0] + 1)
+        output_w = int((width + 2 * self.padding[1] - kernel_w) / self.stride[1] + 1)
 
         output = input.new(batch_size, channels, output_h, output_w)
         n = output.numel()
@@ -37,9 +37,9 @@ class CapsuleConv2d(Function):
                             kernel_h=kernel_h, kernel_w=kernel_w,
                             stride_h=self.stride[0], stride_w=self.stride[1],
                             pad_h=self.padding[0], pad_w=self.padding[1])
-            f(block=(CUDA_NUM_THREADS, 1, 1),
+            f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
+              block=(CUDA_NUM_THREADS, 1, 1),
               grid=(GET_BLOCKS(n), 1, 1),
-              args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
 
         self.save_for_backward(input, weight)

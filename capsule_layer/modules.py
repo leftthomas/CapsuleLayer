@@ -29,8 +29,8 @@ class CapsuleConv2d(nn.Module):
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
         - Output: :math:`(N, C_{out}, H_{out}, W_{out})` where
-          :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - kernel\_size[0]) / stride[0] + 1)`
-          :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - kernel\_size[1]) / stride[1] + 1)`
+          :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - kernel_size[0]) / stride[0] + 1)`
+          :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - kernel_size[1]) / stride[1] + 1)`
 
     Attributes:
         weight (Tensor): the learnable weights of the module of shape
@@ -104,8 +104,8 @@ class CapsuleLinear(nn.Module):
          num_iterations (int, optional): number of routing iterations
 
      Shape:
-         - Input: :math:`(N, in\_capsules, in\_length)`
-         - Output: :math:`(N, out\_capsules, out\_length)`
+         - Input: :math:`(N, in_capsules, in_length)`
+         - Output: :math:`(N, out_capsules, out_length)`
 
      Attributes:
          weight (Tensor): the learnable weights of the module of shape
