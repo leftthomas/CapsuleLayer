@@ -48,7 +48,7 @@ def capsule_linear_cpu(input, weight, num_iterations):
 
 
 def route_conv2d(input, num_iterations):
-    logits = Variable(torch.zeros(*input.size()))
+    logits = Variable(torch.zeros(*input.size())).type_as(input)
     outputs = None
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-3)
@@ -60,7 +60,7 @@ def route_conv2d(input, num_iterations):
 
 
 def route_linear(input, num_iterations):
-    logits = Variable(torch.zeros(*input.size()))
+    logits = Variable(torch.zeros(*input.size())).type_as(input)
     outputs = None
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=2)

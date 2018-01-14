@@ -47,6 +47,7 @@ class CapsuleConv2d(Function):
         return output
 
     def backward(self, grad_output):
+        # TODO
         return grad_output
 
 
@@ -77,6 +78,7 @@ class CapsuleLinear(Function):
         return output
 
     def backward(self, grad_output):
+        # TODO
         return grad_output
 
 

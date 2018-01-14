@@ -30,6 +30,10 @@ capsule_linear_kernels = '''
 extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
+   int tx = blockIdx.x * blockDim.x + threadIdx.x;
+
+   // ${Dtype} v = input_data[tx];
+   output_data[tx] = 1.f;
 }
 
 extern "C"

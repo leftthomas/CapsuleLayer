@@ -102,7 +102,16 @@ class TestCapsuleLayer(unittest.TestCase):
         self.assertLess((y_cpu - y_cuda.cpu()).data.abs().max(), 1e-6)
 
         module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16)
-        x = Variable(torch.randn(16, 128, 8))
+        x = Variable(torch.randn(16, 32, 8))
         y_cpu = module(x)
         y_cuda = module.cuda()(x.cuda())
         self.assertLess((y_cpu - y_cuda.cpu()).data.abs().max(), 1e-6)
+
+
+if __name__ == "__main__":
+    module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16)
+    x = Variable(torch.randn(16, 32, 8))
+    y_cpu = module(x)
+    y_cuda = module.cuda()(x.cuda())
+    print(y_cuda.cpu() - y_cpu)
+    # unittest.main()
