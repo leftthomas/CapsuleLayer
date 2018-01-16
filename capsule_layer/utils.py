@@ -26,32 +26,63 @@ def load_kernel(kernel_name, code, **kwargs):
     return kernel_code.get_function(kernel_name)
 
 
-capsule_linear_kernels = '''
+kernel_loop = '''
+#define CUDA_KERNEL_LOOP(i, n)                        \
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
+      i < (n);                                       \
+      i += blockDim.x * gridDim.x)
+'''
+
+capsule_linear_kernels = kernel_loop + '''
 extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
-   int tx = blockIdx.x * blockDim.x + threadIdx.x;
-
-   // ${Dtype} v = input_data[tx];
-   output_data[tx] = 1.f;
-}
-
-extern "C"
-__global__ void capsule_linear_backward(${Dtype} *grad_input, const unsigned char *mask, const ${Dtype} *grad_output,
-                                int chw, int total)
-{
+  CUDA_KERNEL_LOOP(index, ${nthreads}) {
+    const int n = index / ${out_channels} / ${out_height} / ${out_width};
+    const int c = (index / ${top_height} / ${top_width}) % ${channels};
+    const int h = (index / ${top_width}) % ${top_height};
+    const int w = index % ${top_width};
+    const ${Dtype}* weight = weight_data + c * ${kernel_h} * ${kernel_w};
+    ${Dtype} value = 0;
+    for (int kh = 0; kh < ${kernel_h}; ++kh) {
+      for (int kw = 0; kw < ${kernel_w}; ++kw) {
+        const int h_in = -${pad_h} + h * ${stride_h} + kh * ${dilation_h};
+        const int w_in = -${pad_w} + w * ${stride_w} + kw * ${dilation_w};
+        if ((h_in >= 0) && (h_in < ${bottom_height}) && (w_in >= 0) && (w_in < ${bottom_width})) {
+          const int offset = ((n * ${channels} + c) * ${bottom_height} + h_in) * ${bottom_width} + w_in;
+          value += (*weight) * bottom_data[offset];
+        }
+        ++weight;
+      }
+    }
+    output_data[index] = value;
+  }
 }
 '''
 
-capsule_conv2d_kernels = '''
+capsule_conv2d_kernels = kernel_loop + '''
 extern "C"
 __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
-}
-
-extern "C"
-__global__ void capsule_conv2d_backward(${Dtype} *grad_input, const unsigned char *mask, const ${Dtype} *grad_output,
-                                int chw, int total)
-{
+  CUDA_KERNEL_LOOP(index, ${nthreads}) {
+    const int n = index / ${channels} / ${top_height} / ${top_width};
+    const int c = (index / ${top_height} / ${top_width}) % ${channels};
+    const int h = (index / ${top_width}) % ${top_height};
+    const int w = index % ${top_width};
+    const ${Dtype}* weight = weight_data + c * ${kernel_h} * ${kernel_w};
+    ${Dtype} value = 0;
+    for (int kh = 0; kh < ${kernel_h}; ++kh) {
+      for (int kw = 0; kw < ${kernel_w}; ++kw) {
+        const int h_in = -${pad_h} + h * ${stride_h} + kh * ${dilation_h};
+        const int w_in = -${pad_w} + w * ${stride_w} + kw * ${dilation_w};
+        if ((h_in >= 0) && (h_in < ${bottom_height}) && (w_in >= 0) && (w_in < ${bottom_width})) {
+          const int offset = ((n * ${channels} + c) * ${bottom_height} + h_in) * ${bottom_width} + w_in;
+          value += (*weight) * bottom_data[offset];
+        }
+        ++weight;
+      }
+    }
+    top_data[index] = value;
+  }
 }
 '''

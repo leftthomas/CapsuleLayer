@@ -33,7 +33,7 @@ class CapsuleConv2d(Function):
             output = input.new(batch_size, out_channels, out_height, out_width)
             n = output.numel()
             f = load_kernel('capsule_conv2d_forward', capsule_conv2d_kernels, Dtype=Dtype(input), nthreads=n,
-                            num=batch_size, in_channels=in_channels,
+                            batch_size=batch_size, in_channels=in_channels, out_channels=out_channels,
                             in_height=in_height, in_width=in_width,
                             out_height=out_height, out_width=out_width,
                             in_length=in_length, out_length=out_length,
@@ -69,7 +69,8 @@ class CapsuleLinear(Function):
             output = input.new(batch_size, out_capsules, out_length)
             n = output.numel()
             f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
-                            num=batch_size, in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                            batch_size=batch_size, in_capsules=in_capsules, in_length=in_length,
+                            out_capsules=out_capsules,
                             out_length=out_length, num_iterations=self.num_iterations)
             f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               block=(CUDA_NUM_THREADS, 1, 1),
