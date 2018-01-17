@@ -42,7 +42,7 @@ def capsule_linear_cpu(input, weight, num_iterations):
         raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
     if input.is_cuda or weight.is_cuda:
         raise ValueError("Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.")
-    priors = input[None, :, :, None, :] @ weight[:, None, :, :, :]
+    priors = (weight[:, None, :, :, :] @ input[None, :, :, :, None]).squeeze(dim=-1)
     out = route_linear(priors, num_iterations)
     return out
 
@@ -68,7 +68,7 @@ def route_linear(input, num_iterations):
         if r != num_iterations - 1:
             delta_logits = (input * outputs).sum(dim=-1, keepdim=True)
             logits = logits + delta_logits
-    return outputs.squeeze(dim=-2).squeeze(dim=-2).transpose(0, 1)
+    return outputs.squeeze(dim=-2).transpose(0, 1)
 
 
 def squash(tensor, dim=-1):

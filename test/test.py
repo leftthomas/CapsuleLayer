@@ -109,12 +109,13 @@ class TestCapsuleLayer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=12)
-    x = Variable(torch.randn(4, 32, 8))
+    module = CapsuleLinear(in_capsules=16, out_capsules=10, in_length=5, out_length=8)
+    x = Variable(torch.randn(3, 16, 5))
     # print(x)
     y_cpu = module(x)
+    print(y_cpu)
     y_cuda = module.cuda()(x.cuda())
     print(y_cuda)
-    # print(torch.equal(y_cuda.cpu(), x))
+    print(torch.equal(y_cuda.cpu(), y_cpu))
     # print(y_cuda.cpu() - y_cpu)
     # unittest.main()

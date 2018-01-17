@@ -35,11 +35,17 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
   const int batch_index = index / (${in_capsules} * ${in_length});
   // which capsule in each batch
   const int capsule_index = (index / ${in_length}) % ${in_capsules};
-  // which neural in each capsule
-  const int neural_index = index % ${in_length};
   if (index < ${nthreads}){
-    const int offset = batch_index * (${in_capsules} * ${in_length}) + capsule_index * ${in_length} + neural_index;
-    output_data[index] = input_data[offset];
+    const int neural_index = index % ${out_length};
+    // which weight matrix
+    const ${Dtype}* weight = weight_data + capsule_index * ${in_length} * ${out_length} + neural_index * ${out_length};
+    ${Dtype} value = 0;
+    for (int il = 0; il < ${in_length}; ++il){
+      const int offset = batch_index * (${in_capsules} * ${in_length}) + capsule_index * ${in_length} + il;
+      value += (*weight) * input_data[offset];
+      ++weight;
+    }
+    output_data[index] = value;
   }
 }
 '''

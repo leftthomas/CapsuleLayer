@@ -109,7 +109,7 @@ class CapsuleLinear(nn.Module):
 
      Attributes:
          weight (Tensor): the learnable weights of the module of shape
-             (out_capsules, in_capsules, in_length, out_length)
+             (out_capsules, in_capsules, out_length, in_length)
 
      Examples::
          >>> from capsule_layer import CapsuleLinear
@@ -126,7 +126,7 @@ class CapsuleLinear(nn.Module):
         self.in_capsules = in_capsules
         self.out_capsules = out_capsules
         self.num_iterations = num_iterations
-        self.weight = Parameter(torch.randn(out_capsules, in_capsules, in_length, out_length))
+        self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.num_iterations)
