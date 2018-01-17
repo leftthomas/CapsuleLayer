@@ -34,11 +34,9 @@ class CapsuleConv2d(Function):
             n = output.numel()
             f = load_kernel('capsule_conv2d_forward', capsule_conv2d_kernels, Dtype=Dtype(input), nthreads=n,
                             batch_size=batch_size, in_channels=in_channels, out_channels=out_channels,
-                            in_height=in_height, in_width=in_width,
-                            out_height=out_height, out_width=out_width,
-                            in_length=in_length, out_length=out_length,
-                            kernel_h=kernel_size[0], kernel_w=kernel_size[1],
-                            stride_h=self.stride[0], stride_w=self.stride[1],
+                            in_height=in_height, in_width=in_width, out_height=out_height, out_width=out_width,
+                            in_length=in_length, out_length=out_length, kernel_h=kernel_size[0],
+                            kernel_w=kernel_size[1], stride_h=self.stride[0], stride_w=self.stride[1],
                             pad_h=self.padding[0], pad_w=self.padding[1])
             f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               block=(CUDA_NUM_THREADS, 1, 1),
@@ -70,8 +68,7 @@ class CapsuleLinear(Function):
             n = output.numel()
             f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
                             batch_size=batch_size, in_capsules=in_capsules, in_length=in_length,
-                            out_capsules=out_capsules,
-                            out_length=out_length, num_iterations=self.num_iterations)
+                            out_capsules=out_capsules, out_length=out_length, num_iterations=self.num_iterations)
             f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               block=(CUDA_NUM_THREADS, 1, 1),
               grid=(GET_BLOCKS(n), 1, 1),
