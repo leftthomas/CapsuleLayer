@@ -31,19 +31,19 @@ extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
-  // which batch
-  const int batch_index = index / (${in_capsules} * ${in_length});
-  // which capsule in each batch
-  const int capsule_index = (index / ${in_length}) % ${in_capsules};
   if (index < ${nthreads}){
-    const int neural_index = index % ${out_length};
-    // which weight matrix
-    const ${Dtype}* weight = weight_data + capsule_index * ${in_length} * ${out_length} + neural_index * ${out_length};
-    ${Dtype} value = 0;
-    for (int il = 0; il < ${in_length}; ++il){
-      const int offset = batch_index * (${in_capsules} * ${in_length}) + capsule_index * ${in_length} + il;
-      value += (*weight) * input_data[offset];
-      ++weight;
+    ${Dtype} sum_capsule[${out_length}] = {0};
+    for (int ic = 0; ic < ${in_capsules}; ++ic){
+      ${Dtype} capsule[${out_length}] = {0};
+      for (int ol = 0; ol < ${out_length}; ++ol){
+        ${Dtype} value = 0;
+        for (int il = 0; il < ${in_length}; ++il){
+          value += input_data[ic*${in_length}+il] * weight_data[ic*${in_length}+ol*${out_length}+il]
+        }
+        capsule[ol] = value
+        sum_capsule[ol] += value
+      }
+      sum_capsule
     }
     output_data[index] = value;
   }
