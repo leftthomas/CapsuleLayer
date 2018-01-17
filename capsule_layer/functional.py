@@ -67,8 +67,8 @@ class CapsuleLinear(Function):
             output = input.new(batch_size, out_capsules, out_length)
             n = output.numel()
             f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
-                            batch_size=batch_size, in_capsules=in_capsules, in_length=in_length,
-                            out_capsules=out_capsules, out_length=out_length, num_iterations=self.num_iterations)
+                            in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                            out_length=out_length, num_iterations=self.num_iterations)
             f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
               block=(CUDA_NUM_THREADS, 1, 1),
               grid=(GET_BLOCKS(n), 1, 1),
