@@ -48,6 +48,11 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
     output_data[index] = value;
   }
 }
+
+extern "C"
+__global__ void capsule_linear_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+{
+}
 '''
 
 capsule_conv2d_kernels = '''
@@ -55,5 +60,10 @@ extern "C"
 __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
 
+}
+
+extern "C"
+__global__ void capsule_conv2d_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+{
 }
 '''
