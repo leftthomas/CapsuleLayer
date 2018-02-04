@@ -24,6 +24,7 @@ class CapsuleConv2d(nn.Module):
         out_length (int): length of each output sample's each capsule
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
+        with_routing (bool, optional): using routing algorithm or not
         num_iterations (int, optional): number of routing iterations
 
     Shape:
@@ -59,7 +60,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1,
-                 padding=0, num_iterations=3):
+                 padding=0, with_routing=False, num_iterations=3):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('in_channels must be divisible by in_length')
@@ -77,12 +78,13 @@ class CapsuleConv2d(nn.Module):
         self.out_length = out_length
         self.stride = stride
         self.padding = padding
+        self.with_routing = with_routing
         self.num_iterations = num_iterations
         self.weight = Parameter(
             torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, in_length, out_length))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.num_iterations)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.with_routing, self.num_iterations)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -101,6 +103,7 @@ class CapsuleLinear(nn.Module):
          out_capsules (int): number of each output sample's capsules
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
+         with_routing (bool, optional): using routing algorithm or not
          num_iterations (int, optional): number of routing iterations
 
      Shape:
@@ -121,15 +124,16 @@ class CapsuleLinear(nn.Module):
          torch.Size([128, 30, 16])
      """
 
-    def __init__(self, in_capsules, out_capsules, in_length, out_length, num_iterations=3):
+    def __init__(self, in_capsules, out_capsules, in_length, out_length, with_routing=False, num_iterations=3):
         super(CapsuleLinear, self).__init__()
         self.in_capsules = in_capsules
         self.out_capsules = out_capsules
+        self.with_routing = with_routing
         self.num_iterations = num_iterations
         self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_linear(input, self.weight, self.num_iterations)
+        return CL.capsule_linear(input, self.weight, self.with_routing, self.num_iterations)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \

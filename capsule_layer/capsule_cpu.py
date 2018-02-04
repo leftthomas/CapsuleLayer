@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from torch.nn.modules.utils import _pair
 
 
-def capsule_conv2d_cpu(input, weight, stride, padding, num_iterations):
+def capsule_conv2d_cpu(input, weight, stride, padding, with_routing, num_iterations):
     if input.dim() != 4:
         raise ValueError("Expected 4D tensor as input, got {}D tensor instead.".format(input.dim()))
     if input.is_cuda or weight.is_cuda:
@@ -30,20 +30,28 @@ def capsule_conv2d_cpu(input, weight, stride, padding, num_iterations):
     # [batch_size, num_out_plane, num_in_plane, num_height_kernel, num_width_kernel, kernel_size[0]*kernel_size[1], 1,
     # length_capsule]
     priors = input_windows[:, None, :, :, :, :, None, :] @ weight[None, :, :, None, None, :, :, :]
+
     # [batch_size, num_out_plane, num_height_kernel, num_width_kernel, length_capsule]
-    out = route_conv2d(priors, num_iterations)
+    if with_routing:
+        out = route_conv2d(priors, num_iterations)
+    else:
+        out = priors.sum(dim=-3, keepdim=True).sum(dim=2, keepdim=True).squeeze(dim=-2).squeeze(dim=-2).squeeze(
+            dim=2)
     out = out.view(*out.size()[:2], -1, out.size(-1)).transpose(-1, -2)
     out = out.contiguous().view(out.size(0), -1, H_out, W_out)
     return out
 
 
-def capsule_linear_cpu(input, weight, num_iterations):
+def capsule_linear_cpu(input, weight, with_routing, num_iterations):
     if input.dim() != 3:
         raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
     if input.is_cuda or weight.is_cuda:
         raise ValueError("Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.")
     priors = (weight[:, None, :, :, :] @ input[None, :, :, :, None]).squeeze(dim=-1)
-    out = route_linear(priors, num_iterations)
+    if with_routing:
+        out = route_linear(priors, num_iterations)
+    else:
+        out = priors.sum(dim=2, keepdim=True).squeeze(dim=-2).transpose(0, 1)
     return out
 
 

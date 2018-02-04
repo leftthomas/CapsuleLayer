@@ -13,7 +13,7 @@ setup_info = dict(
     url='https://github.com/leftthomas/CapsuleLayer',
     description='Manually fused PyTorch Capsule Layer',
     long_description=long_description,
-    license='BSD',
+    license='MIT',
 
     # Package info
     packages=find_packages(exclude=('test',)),
