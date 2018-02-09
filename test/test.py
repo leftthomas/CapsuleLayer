@@ -127,6 +127,8 @@ if __name__ == "__main__":
     print(w_gpu)
     x_cpu = x_gpu.cpu()
     w_cpu = w_gpu.cpu()
+    print('w_t: ')
+    print(w_cpu.transpose(1, 2))
     start = time.clock()
     y_fast = CL.capsule_linear(x_gpu, w_gpu)
     print('gpu: ' + str(time.clock() - start) + 's')
