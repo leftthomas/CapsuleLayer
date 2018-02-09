@@ -36,7 +36,6 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
     int batch = index / (${out_capsules} * ${out_length});
     int oc = (index / ${out_length}) % ${out_capsules};
     int ol = index % ${out_length};
-    #pragma unroll
     for (int ic = 0; ic < ${in_capsules}; ++ic){
       for (int il = 0; il < ${in_length}; ++il){
         output_data[index] += input_data[batch*${in_capsules}*${in_length}+ic*${in_length}+il] * weight_data[oc*${out_length}*${in_capsules}*${in_length}+ol*${in_capsules}*${in_length}+ic*${in_length}+il];
