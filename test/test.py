@@ -125,6 +125,8 @@ if __name__ == "__main__":
     print(x_gpu)
     print('w: ')
     print(w_gpu)
+    print('w_t: ')
+    print(w_gpu.transpose(1, 2))
     x_cpu = x_gpu.cpu()
     w_cpu = w_gpu.cpu()
     start = time.clock()
@@ -137,6 +139,5 @@ if __name__ == "__main__":
     print(y_fast)
     print('y_ref: ')
     print(y_ref)
-    print(y_fast.cpu() - y_ref)
     assert (y_fast.cpu() - y_ref).data.abs().max() <= 1e-9
     # unittest.main()
