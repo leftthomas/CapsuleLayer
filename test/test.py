@@ -59,7 +59,7 @@ class TestCapsuleLayer(unittest.TestCase):
         self.assertLess((y_fast.cpu() - y_ref).data.abs().max(), 1e-9)
 
         print('--------test capsule linear backward--------')
-        go_gpu = torch.randn(y_fast.size()).type_as(y_fast)
+        go_gpu = torch.randn(y_fast.size()).double().cuda()
         go_cpu = go_gpu.cpu()
         x_gpu.requires_grad = True
         w_gpu.requires_grad = True
