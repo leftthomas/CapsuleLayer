@@ -126,7 +126,7 @@ if __name__ == "__main__":
     print('w: ')
     print(w_gpu)
     print('w_t: ')
-    print(w_gpu.transpose(1, 2))
+    print(w_gpu.data.clone().transpose(1, 2))
     x_cpu = x_gpu.cpu()
     w_cpu = w_gpu.cpu()
     start = time.clock()
