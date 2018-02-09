@@ -117,7 +117,6 @@ if __name__ == "__main__":
     w_cpu = w_gpu.cpu()
     y_fast = CL.capsule_linear(x_gpu, w_gpu)
     y_ref = CL.capsule_linear(x_cpu, w_cpu)
-    print(y_fast)
-    print(y_ref)
-    print((y_fast.cpu() - y_ref).data.abs().max())
+    print(y_fast - y_ref)
+    assert (y_fast.cpu() - y_ref).data.abs().max() <= 1e-9
     # unittest.main()
