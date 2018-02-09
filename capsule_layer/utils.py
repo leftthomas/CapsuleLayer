@@ -34,7 +34,7 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
   int batch_size = ${nthreads} / (${out_capsules} * ${out_length});
   if (index < ${nthreads}){
     int batch = index / (${out_capsules} * ${out_length});
-    int oc = (index / ${out_length}) % batch_size;
+    int oc = (index / ${out_length}) % ${out_capsules};
     int ol = index % ${out_length};
     for (int ic = 0; ic < ${in_capsules}; ++ic){
       for (int il = 0; il < ${in_length}; ++il){
