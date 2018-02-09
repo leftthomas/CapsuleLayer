@@ -86,8 +86,22 @@ class CapsuleLinear(Function):
         return output
 
     def backward(self, grad_output):
-        # TODO
-        raise NotImplementedError
+        if not (grad_output.is_cuda and grad_output.is_contiguous()):
+            raise ValueError(
+                "Expected input tensor should be in cuda and contiguous, got non-contiguous cpu tensor instead.")
+
+        with torch.cuda.device_of(grad_output):
+            grad_input = grad_output.new(grad_output.size())
+            if self.with_routing:
+                # TODO
+                raise NotImplementedError
+            else:
+                f = load_kernel('ncrelu_backward', kernels, Dtype=Dtype(grad_output))
+                f(args=[grad_input.data_ptr(), mask.data_ptr(), grad_output.data_ptr(), c * h * w, mask.numel()],
+                  block=(CUDA_NUM_THREADS, 1, 1),
+                  grid=(GET_BLOCKS(mask.numel()), 1, 1),
+                  stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
+        return grad_input
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, with_routing=False, num_iterations=3):

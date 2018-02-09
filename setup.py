@@ -8,7 +8,7 @@ setup_info = dict(
     # Metadata
     name='capsule_layer',
     version=VERSION,
-    author='Left Thomas',
+    author='Hao Ren',
     author_email='leftthomas@qq.com',
     url='https://github.com/leftthomas/CapsuleLayer',
     description='Manually fused PyTorch Capsule Layer',

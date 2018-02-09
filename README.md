@@ -46,6 +46,10 @@ module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=
 y = module(x)
 ```
 
+## Note
+The routing algorithm isn't implemented now! If someone could implement it with
+single CUDA Kernel Function, please let me know.
+
 ## Credits
 Referenced CuPy fused PyTorch:
 [PyINN by @szagoruyko](https://github.com/szagoruyko/pyinn)
