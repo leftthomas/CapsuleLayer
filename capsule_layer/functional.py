@@ -70,11 +70,11 @@ class CapsuleLinear(Function):
         batch_size, in_capsules, in_length = input.size()
         out_capsules, out_length = weight.size(0), weight.size(1)
         with torch.cuda.device_of(input):
-            output = input.new(batch_size, out_capsules, out_length)
             if self.with_routing:
                 # TODO
                 raise NotImplementedError
             else:
+                output = input.new(batch_size, out_capsules, out_length)
                 n = output.numel()
                 f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
                                 in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
@@ -83,25 +83,47 @@ class CapsuleLinear(Function):
                   block=(CUDA_NUM_THREADS, 1, 1),
                   grid=(GET_BLOCKS(n), 1, 1),
                   stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
+
+        self.save_for_backward(input, weight)
         return output
 
     def backward(self, grad_output):
         if not (grad_output.is_cuda and grad_output.is_contiguous()):
             raise ValueError(
                 "Expected input tensor should be in cuda and contiguous, got non-contiguous cpu tensor instead.")
+        input, weight = self.saved_tensors
+        batch_size, in_capsules, in_length = input.size()
+        out_capsules, out_length = weight.size(0), weight.size(1)
 
-        with torch.cuda.device_of(grad_output):
-            grad_input = grad_output.new(grad_output.size())
+        with torch.cuda.device_of(input):
             if self.with_routing:
                 # TODO
                 raise NotImplementedError
             else:
-                f = load_kernel('ncrelu_backward', kernels, Dtype=Dtype(grad_output))
-                f(args=[grad_input.data_ptr(), mask.data_ptr(), grad_output.data_ptr(), c * h * w, mask.numel()],
-                  block=(CUDA_NUM_THREADS, 1, 1),
-                  grid=(GET_BLOCKS(mask.numel()), 1, 1),
-                  stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
-        return grad_input
+                if self.needs_input_grad[0]:
+                    grad_input = input.new(input.size())
+                    n = grad_input.numel()
+                    f = load_kernel('capsule_linear_backward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
+                                    in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                                    out_length=out_length)
+                    f(args=[grad_output.data_ptr(), weight.data_ptr(), grad_input.data_ptr()],
+                      block=(CUDA_NUM_THREADS, 1, 1),
+                      grid=(GET_BLOCKS(n), 1, 1),
+                      stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
+
+                if self.needs_input_grad[1]:
+                    weight_buffer = weight.new(channels, kernel_h, kernel_w, batch_size, output_h, output_w)
+                    n = weight_buffer.numel()
+                    f = load_kernel('capsule_linear_backward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
+                                    in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                                    out_length=out_length)
+                    f(args=[grad_output.data_ptr(), input.data_ptr(), weight_buffer.data_ptr()],
+                      block=(CUDA_NUM_THREADS, 1, 1),
+                      grid=(GET_BLOCKS(n), 1, 1),
+                      stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
+                    grad_weight = weight_buffer.view(weight.size() + (-1,)).sum(-1)
+
+        return grad_input, grad_weight
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, with_routing=False, num_iterations=3):
