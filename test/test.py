@@ -1,4 +1,5 @@
 import sys
+import time
 import unittest
 from functools import partial
 
@@ -115,8 +116,12 @@ if __name__ == "__main__":
     w_gpu = Variable(torch.randn(5, 4, 7, 8).double().cuda(), requires_grad=True)
     x_cpu = x_gpu.cpu()
     w_cpu = w_gpu.cpu()
+    start = time.clock()
     y_fast = CL.capsule_linear(x_gpu, w_gpu)
+    print('gpu: ' + str(time.clock() - start))
+    start = time.clock()
     y_ref = CL.capsule_linear(x_cpu, w_cpu)
+    print('cpu: ' + str(time.clock() - start))
     print(y_fast.cpu() - y_ref)
     assert (y_fast.cpu() - y_ref).data.abs().max() <= 1e-9
     # unittest.main()
