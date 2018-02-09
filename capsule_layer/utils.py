@@ -31,7 +31,7 @@ extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
-  int batch_size = ${nthreads} / (${out_capsules} * ${out_length})
+  int batch_size = ${nthreads} / (${out_capsules} * ${out_length});
   if (index < ${nthreads}){
     int batch = index / (${out_capsules} * ${out_length});
     int oc = (index / ${out_length}) % batch_size;
