@@ -15,8 +15,8 @@ class TestCapsuleLayer(unittest.TestCase):
         w_gpu = Variable(torch.randn(64, 3, 3, 2, 1, 8).double().cuda(), requires_grad=True)
         x_cpu = x_gpu.cpu()
         w_cpu = w_gpu.cpu()
-        y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride=1, padding=1, num_iterations=3)
-        y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride=1, padding=1, num_iterations=3)
+        y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride=1, padding=1)
+        y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride=1, padding=1)
         go_gpu = torch.randn(y_fast.size()).double().cuda()
         go_cpu = go_gpu.cpu()
 
@@ -43,11 +43,11 @@ class TestCapsuleLayer(unittest.TestCase):
 
     def test_capsule_linear(self):
         x_gpu = Variable(torch.randn(6, 7, 8).double().cuda(), requires_grad=True)
-        w_gpu = Variable(torch.randn(5, 7, 8, 4).double().cuda(), requires_grad=True)
+        w_gpu = Variable(torch.randn(5, 16, 7, 8).double().cuda(), requires_grad=True)
         x_cpu = x_gpu.cpu()
         w_cpu = w_gpu.cpu()
-        y_fast = CL.capsule_linear(x_gpu, w_gpu, num_iterations=3)
-        y_ref = CL.capsule_linear(x_cpu, w_cpu, num_iterations=3)
+        y_fast = CL.capsule_linear(x_gpu, w_gpu)
+        y_ref = CL.capsule_linear(x_cpu, w_cpu)
         go_gpu = torch.randn(y_fast.size()).double().cuda()
         go_cpu = go_gpu.cpu()
 
@@ -86,8 +86,8 @@ class TestCapsuleLayer(unittest.TestCase):
     def test_capsule_linear_multigpu(self):
         a0 = Variable(torch.randn(6, 7, 8).cuda(0), requires_grad=True)
         a1 = Variable(torch.randn(6, 7, 8).cuda(1), requires_grad=True)
-        w0 = Variable(torch.randn(5, 7, 8, 4).double().cuda(0), requires_grad=True)
-        w1 = Variable(torch.randn(5, 7, 8, 4).double().cuda(1), requires_grad=True)
+        w0 = Variable(torch.randn(5, 4, 7, 8).double().cuda(0), requires_grad=True)
+        w1 = Variable(torch.randn(5, 4, 7, 8).double().cuda(1), requires_grad=True)
         y0 = CL.capsule_linear(a0, w0)
         go = torch.randn(y0.size()).double().cuda()
         y0.backward(go)
@@ -109,13 +109,13 @@ class TestCapsuleLayer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    module = CapsuleLinear(in_capsules=16, out_capsules=10, in_length=5, out_length=8)
-    x = Variable(torch.randn(3, 16, 5))
-    # print(x)
-    y_cpu = module(x)
-    print(y_cpu)
-    y_cuda = module.cuda()(x.cuda())
-    print(y_cuda)
-    print(torch.equal(y_cuda.cpu(), y_cpu))
-    # print(y_cuda.cpu() - y_cpu)
+    x_gpu = Variable(torch.randn(6, 7, 8).double().cuda(), requires_grad=True)
+    w_gpu = Variable(torch.randn(5, 4, 7, 8).double().cuda(), requires_grad=True)
+    x_cpu = x_gpu.cpu()
+    w_cpu = w_gpu.cpu()
+    y_fast = CL.capsule_linear(x_gpu, w_gpu)
+    y_ref = CL.capsule_linear(x_cpu, w_cpu)
+    print(y_fast)
+    print(y_ref)
+    assert (y_fast.cpu() - y_ref).data.abs().max() <= 1e-9
     # unittest.main()
