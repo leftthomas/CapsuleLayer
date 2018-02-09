@@ -112,8 +112,8 @@ class TestCapsuleLayer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    x_gpu = Variable(torch.randn(6, 7, 8).double().cuda(), requires_grad=True)
-    w_gpu = Variable(torch.randn(5, 4, 7, 8).double().cuda(), requires_grad=True)
+    x_gpu = Variable(torch.randn(64, 512, 8).double().cuda(), requires_grad=True)
+    w_gpu = Variable(torch.randn(10, 16, 512, 8).double().cuda(), requires_grad=True)
     x_cpu = x_gpu.cpu()
     w_cpu = w_gpu.cpu()
     start = time.clock()
@@ -122,6 +122,6 @@ if __name__ == "__main__":
     start = time.clock()
     y_ref = CL.capsule_linear(x_cpu, w_cpu)
     print('cpu: ' + str(time.clock() - start))
-    print(y_fast.cpu() - y_ref)
+    # print(y_fast.cpu() - y_ref)
     assert (y_fast.cpu() - y_ref).data.abs().max() <= 1e-9
     # unittest.main()
