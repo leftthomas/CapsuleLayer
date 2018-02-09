@@ -119,7 +119,7 @@ class TestCapsuleLayer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    x_gpu = Variable(torch.arange(0, 64).resize_(8, 4, 2).double().cuda(), requires_grad=True)
+    x_gpu = Variable(torch.arange(0, 64).resize_(5, 4, 2).double().cuda(), requires_grad=True)
     w_gpu = Variable(torch.arange(0, 96).resize_(3, 4, 4, 2).double().cuda(), requires_grad=True)
     print('x: ')
     print(x_gpu)
