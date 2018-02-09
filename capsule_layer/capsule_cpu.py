@@ -47,6 +47,7 @@ def capsule_linear_cpu(input, weight, with_routing, num_iterations):
         raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
     if input.is_cuda or weight.is_cuda:
         raise ValueError("Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.")
+    weight = weight.transpose(1, 2)
     priors = (weight[:, None, :, :, :] @ input[None, :, :, :, None]).squeeze(dim=-1)
     if with_routing:
         out = route_linear(priors, num_iterations)

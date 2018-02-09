@@ -31,21 +31,16 @@ extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int batch_size = ${nthreads} / (${out_capsules} * ${out_length})
   if (index < ${nthreads}){
-    ${Dtype} sum_capsule[${out_length}] = {0};
+    int batch = index / (${out_capsules} * ${out_length});
+    int oc = (index / ${out_length}) % batch_size;
+    int ol = index % ${out_length};
     for (int ic = 0; ic < ${in_capsules}; ++ic){
-      ${Dtype} capsule[${out_length}] = {0};
-      for (int ol = 0; ol < ${out_length}; ++ol){
-        ${Dtype} value = 0;
-        for (int il = 0; il < ${in_length}; ++il){
-          value += input_data[ic*${in_length}+il] * weight_data[ic*${in_length}+ol*${out_length}+il]
-        }
-        capsule[ol] = value
-        sum_capsule[ol] += value
+      for (int il = 0; il < ${in_length}; ++il){
+        output_data[index] += input_data[batch*${in_capsules}*${in_length}+ic*${in_length}+il] * weight_data[oc*${out_length}*${in_capsules}*${in_length}+ol*${in_capsules}*${in_length}+ic*${in_length}+il];
       }
-      sum_capsule
     }
-    output_data[index] = value;
   }
 }
 

@@ -68,7 +68,7 @@ class CapsuleLinear(Function):
             raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
 
         batch_size, in_capsules, in_length = input.size()
-        out_capsules, out_length = weight.size(0), weight.size(2)
+        out_capsules, out_length = weight.size(0), weight.size(1)
         with torch.cuda.device_of(input):
             output = input.new(batch_size, out_capsules, out_length)
             if self.with_routing:
@@ -78,7 +78,7 @@ class CapsuleLinear(Function):
                 n = output.numel()
                 f = load_kernel('capsule_linear_forward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
                                 in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
-                                out_length=out_length, num_iterations=self.num_iterations)
+                                out_length=out_length)
                 f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
                   block=(CUDA_NUM_THREADS, 1, 1),
                   grid=(GET_BLOCKS(n), 1, 1),
@@ -102,7 +102,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, with_routing=False, num_it
 
 
 def capsule_linear(input, weight, with_routing=False, num_iterations=3):
-    if input.size(1) != weight.size(1):
+    if input.size(1) != weight.size(2):
         raise ValueError("Expected input tensor has the same in_capsules as weight, got {} "
                          "in_capsules in input tensor, {} in_capsules in weight.".format(input.size(1), weight.size(1)))
     if input.size(-1) != weight.size(-1):
