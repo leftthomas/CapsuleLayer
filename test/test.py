@@ -137,5 +137,6 @@ if __name__ == "__main__":
     print(y_fast)
     print('y_ref: ')
     print(y_ref)
+    print(y_fast.cpu() - y_ref)
     assert (y_fast.cpu() - y_ref).data.abs().max() <= 1e-9
     # unittest.main()
