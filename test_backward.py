@@ -2,25 +2,36 @@ import torch
 from torch.autograd import Function
 from torch.autograd import Variable
 
+import torch
+import torch.nn as nn
 
-class ReLUF(Function):
+
+class Linear(nn.Module):
+
+    def __init__(self, in_features, out_features):
+        super(Linear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.weight = nn.Parameter(torch.randn(out_features, in_features))
+
     def forward(self, input):
-        self.save_for_backward(input)
-        return input.clamp(min=0)
-
-    def backward(self, output_grad):
-        input = self.saved_tensors[0]
-
-        input_grad = output_grad.clone()
-        input_grad[input < 0] = 0
-        return input_grad
+        return LinearF()(input, self.weight)
 
 
-if __name__ == "__main__":
-    a = torch.randn(2, 3)
-    va = Variable(a, requires_grad=True)
-    vb = ReLUF()(va)
-    print(va.data, vb.data)
+class LinearF(Function):
 
-    vb.backward(torch.ones(va.size()))
-    print(vb.grad.data, va.grad.data)
+    def forward(self, input, weight):
+        self.save_for_backward(input, weight)
+        output = torch.mm(input, weight.t())
+
+        return output
+
+    def backward(self, grad_output):
+        input, weight = self.saved_tensors
+
+        grad_input = grad_weight = None
+        if self.needs_input_grad[0]:
+            grad_input = torch.mm(grad_output, weight)
+        if self.needs_input_grad[1]:
+            grad_weight = torch.mm(grad_output.t(), input)
+        return grad_input, grad_weight
