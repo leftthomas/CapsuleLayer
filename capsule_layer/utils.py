@@ -5,11 +5,11 @@ import cupy
 import torch
 
 Stream = namedtuple('Stream', ['ptr'])
-CUDA_NUM_THREADS = 1024
+cuda_num_threads = 1024
 
 
-def GET_BLOCKS(N, K=CUDA_NUM_THREADS):
-    return (N + K - 1) // K
+def get_thread_blocks(n, k=cuda_num_threads):
+    return (n + k - 1) // k
 
 
 def Dtype(t):
@@ -45,7 +45,12 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
 }
 
 extern "C"
-__global__ void capsule_linear_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+__global__ void capsule_linear_input_backward(${Dtype} *grad_output, const ${Dtype} *weight, const ${Dtype} *grad_input)
+{
+}
+
+extern "C"
+__global__ void capsule_linear_weight_backward(${Dtype} *grad_output, const ${Dtype} *input, const ${Dtype} *grad_weight)
 {
 }
 '''
@@ -58,7 +63,12 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
 }
 
 extern "C"
-__global__ void capsule_conv2d_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+__global__ void capsule_conv2d_input_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+{
+}
+
+extern "C"
+__global__ void capsule_conv2d_weight_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
 {
 }
 '''

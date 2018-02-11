@@ -3,7 +3,7 @@ from torch.autograd import Function
 from torch.nn.modules.utils import _pair
 
 from capsule_layer.capsule_cpu import capsule_conv2d_cpu, capsule_linear_cpu
-from capsule_layer.utils import load_kernel, Dtype, Stream, CUDA_NUM_THREADS, GET_BLOCKS, capsule_linear_kernels, \
+from capsule_layer.utils import load_kernel, Dtype, Stream, cuda_num_threads, get_thread_blocks, capsule_linear_kernels, \
     capsule_conv2d_kernels
 
 
@@ -44,8 +44,8 @@ class CapsuleConv2d(Function):
                                 kernel_w=kernel_size[1], stride_h=self.stride[0], stride_w=self.stride[1],
                                 pad_h=self.padding[0], pad_w=self.padding[1])
                 f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
-                  block=(CUDA_NUM_THREADS, 1, 1),
-                  grid=(GET_BLOCKS(n), 1, 1),
+                  block=(cuda_num_threads, 1, 1),
+                  grid=(get_thread_blocks(n), 1, 1),
                   stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
         return output
 
@@ -80,8 +80,8 @@ class CapsuleLinear(Function):
                                 in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
                                 out_length=out_length)
                 f(args=[input.data_ptr(), weight.data_ptr(), output.data_ptr()],
-                  block=(CUDA_NUM_THREADS, 1, 1),
-                  grid=(GET_BLOCKS(n), 1, 1),
+                  block=(cuda_num_threads, 1, 1),
+                  grid=(get_thread_blocks(n), 1, 1),
                   stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
 
         self.save_for_backward(input, weight)
@@ -103,25 +103,24 @@ class CapsuleLinear(Function):
                 if self.needs_input_grad[0]:
                     grad_input = input.new(input.size())
                     n = grad_input.numel()
-                    f = load_kernel('capsule_linear_backward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
-                                    in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                    f = load_kernel('capsule_linear_input_backward', capsule_linear_kernels, Dtype=Dtype(input),
+                                    nthreads=n, in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
                                     out_length=out_length)
                     f(args=[grad_output.data_ptr(), weight.data_ptr(), grad_input.data_ptr()],
-                      block=(CUDA_NUM_THREADS, 1, 1),
-                      grid=(GET_BLOCKS(n), 1, 1),
+                      block=(cuda_num_threads, 1, 1),
+                      grid=(get_thread_blocks(n), 1, 1),
                       stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
 
                 if self.needs_input_grad[1]:
-                    weight_buffer = weight.new(channels, kernel_h, kernel_w, batch_size, output_h, output_w)
-                    n = weight_buffer.numel()
-                    f = load_kernel('capsule_linear_backward', capsule_linear_kernels, Dtype=Dtype(input), nthreads=n,
-                                    in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
+                    grad_weight = weight.new(weight.size())
+                    n = grad_weight.numel()
+                    f = load_kernel('capsule_linear_weight_backward', capsule_linear_kernels, Dtype=Dtype(input),
+                                    nthreads=n, in_capsules=in_capsules, in_length=in_length, out_capsules=out_capsules,
                                     out_length=out_length)
-                    f(args=[grad_output.data_ptr(), input.data_ptr(), weight_buffer.data_ptr()],
-                      block=(CUDA_NUM_THREADS, 1, 1),
-                      grid=(GET_BLOCKS(n), 1, 1),
+                    f(args=[grad_output.data_ptr(), input.data_ptr(), grad_weight.data_ptr()],
+                      block=(cuda_num_threads, 1, 1),
+                      grid=(get_thread_blocks(n), 1, 1),
                       stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
-                    grad_weight = weight_buffer.view(weight.size() + (-1,)).sum(-1)
 
         return grad_input, grad_weight
 
