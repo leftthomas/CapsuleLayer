@@ -35,3 +35,17 @@ class LinearF(Function):
         if self.needs_input_grad[1]:
             grad_weight = torch.mm(grad_output.t(), input)
         return grad_input, grad_weight
+
+
+if __name__ == "__main__":
+    module = Linear(in_features=5, out_features=3)
+    x = Variable(torch.randn(2, 5))
+    print('x:')
+    print(x)
+    print('x.grad:')
+    print(x.grad.data)
+    y = module(x)
+    print('y:')
+    print(y)
+    print('y.grad:')
+    print(y.grad.data)
