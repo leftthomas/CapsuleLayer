@@ -119,4 +119,15 @@ class TestCapsuleLayer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    module = CapsuleLinear(in_capsules=5, out_capsules=3, in_length=2, out_length=4)
+    x = Variable(torch.randn(2, 5, 2))
+    print('x:')
+    print(x)
+    y = module(x)
+    print('weight:')
+    print(module.weight)
+    z = y.sum()
+    z.backward()
+    print('weight.grad:')
+    print(module.weight.grad)
+    # unittest.main()
