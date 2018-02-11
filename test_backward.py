@@ -23,7 +23,6 @@ class LinearF(Function):
     def forward(self, input, weight):
         self.save_for_backward(input, weight)
         output = torch.mm(input, weight.t())
-
         return output
 
     def backward(self, grad_output):
@@ -42,10 +41,10 @@ if __name__ == "__main__":
     x = Variable(torch.randn(2, 5))
     print('x:')
     print(x)
-    print('x.grad:')
-    print(x.grad.data)
     y = module(x)
-    print('y:')
-    print(y)
-    print('y.grad:')
-    print(y.grad.data)
+    print('weight:')
+    print(module.weight)
+    z = y.sum()
+    z.backward()
+    print('weight.grad:')
+    print(module.weight.grad)
