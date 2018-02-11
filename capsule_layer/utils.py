@@ -45,13 +45,37 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
 }
 
 extern "C"
-__global__ void capsule_linear_input_backward(${Dtype} *grad_output, const ${Dtype} *weight, const ${Dtype} *grad_input)
+__global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int batch_size = ${nthreads} / (${out_capsules} * ${out_length});
+  if (index < ${nthreads}){
+    int batch = index / (${out_capsules} * ${out_length});
+    int oc = (index / ${out_length}) % ${out_capsules};
+    int ol = index % ${out_length};
+    for (int ic = 0; ic < ${in_capsules}; ++ic){
+      for (int il = 0; il < ${in_length}; ++il){
+        output_data[index] += input_data[batch*${in_capsules}*${in_length}+ic*${in_length}+il] * weight_data[oc*${out_length}*${in_capsules}*${in_length}+ol*${in_capsules}*${in_length}+ic*${in_length}+il];
+      }
+    }
+  }
 }
 
 extern "C"
-__global__ void capsule_linear_weight_backward(${Dtype} *grad_output, const ${Dtype} *input, const ${Dtype} *grad_weight)
+__global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int batch_size = ${nthreads} / (${out_capsules} * ${out_length});
+  if (index < ${nthreads}){
+    int batch = index / (${out_capsules} * ${out_length});
+    int oc = (index / ${out_length}) % ${out_capsules};
+    int ol = index % ${out_length};
+    for (int ic = 0; ic < ${in_capsules}; ++ic){
+      for (int il = 0; il < ${in_length}; ++il){
+        output_data[index] += input_data[batch*${in_capsules}*${in_length}+ic*${in_length}+il] * weight_data[oc*${out_length}*${in_capsules}*${in_length}+ol*${in_capsules}*${in_length}+ic*${in_length}+il];
+      }
+    }
+  }
 }
 '''
 
@@ -63,12 +87,12 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
 }
 
 extern "C"
-__global__ void capsule_conv2d_input_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+__global__ void capsule_conv2d_input_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
 {
 }
 
 extern "C"
-__global__ void capsule_conv2d_weight_backward(${Dtype} *grad_input, const ${Dtype} *grad_output)
+__global__ void capsule_conv2d_weight_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
 {
 }
 '''
