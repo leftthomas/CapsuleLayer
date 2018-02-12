@@ -19,8 +19,10 @@ class CapsuleConv2d(Function):
     def forward(self, input, weight):
         if input.dim() != 4:
             raise ValueError("Expected 4D tensor as input, got {}D tensor instead.".format(input.dim()))
-        if not (input.is_cuda and weight.is_cuda):
-            raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
+        if not input.is_cuda:
+            raise ValueError("Expected input tensor should be in cuda, got cpu tensor instead.")
+        if not weight.is_cuda:
+            raise ValueError("Expected weight tensor should be in cuda, got cpu tensor instead.")
 
         kernel_size = (weight.size(2), weight.size(3))
         in_length = weight.size(4)
@@ -50,6 +52,10 @@ class CapsuleConv2d(Function):
         return output
 
     def backward(self, grad_output):
+        if not grad_output.is_cuda:
+            raise ValueError("Expected input tensor should be in cuda, got cpu tensor instead.")
+        if not grad_output.is_contiguous():
+            raise ValueError("Expected input tensor should be contiguous, got non-contiguous tensor instead.")
         # TODO
         raise NotImplementedError
 
@@ -64,8 +70,10 @@ class CapsuleLinear(Function):
     def forward(self, input, weight):
         if input.dim() != 3:
             raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
-        if not (input.is_cuda and weight.is_cuda):
-            raise ValueError("Expected input tensor and weight tensor should be in cuda, got cpu tensor instead.")
+        if not input.is_cuda:
+            raise ValueError("Expected input tensor should be in cuda, got cpu tensor instead.")
+        if not weight.is_cuda:
+            raise ValueError("Expected weight tensor should be in cuda, got cpu tensor instead.")
 
         batch_size, in_capsules, in_length = input.size()
         out_capsules, out_length = weight.size(0), weight.size(1)
@@ -88,9 +96,10 @@ class CapsuleLinear(Function):
         return output
 
     def backward(self, grad_output):
-        if not (grad_output.is_cuda and grad_output.is_contiguous()):
-            raise ValueError(
-                "Expected input tensor should be in cuda and contiguous, got non-contiguous cpu tensor instead.")
+        if not grad_output.is_cuda:
+            raise ValueError("Expected input tensor should be in cuda, got cpu tensor instead.")
+        if not grad_output.is_contiguous():
+            raise ValueError("Expected input tensor should be contiguous, got non-contiguous tensor instead.")
         input, weight = self.saved_tensors
         batch_size, in_capsules, in_length = input.size()
         out_capsules, out_length = weight.size(0), weight.size(1)

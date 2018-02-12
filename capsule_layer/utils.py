@@ -26,6 +26,26 @@ def load_kernel(kernel_name, code, **kwargs):
     return kernel_code.get_function(kernel_name)
 
 
+capsule_conv2d_kernels = '''
+extern "C"
+__global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
+{
+
+}
+
+extern "C"
+__global__ void capsule_conv2d_input_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
+{
+
+}
+
+extern "C"
+__global__ void capsule_conv2d_weight_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
+{
+
+}
+'''
+
 capsule_linear_kernels = '''
 extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
@@ -52,26 +72,6 @@ __global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const
 
 extern "C"
 __global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
-{
-
-}
-'''
-
-capsule_conv2d_kernels = '''
-extern "C"
-__global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
-{
-
-}
-
-extern "C"
-__global__ void capsule_conv2d_input_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
-{
-
-}
-
-extern "C"
-__global__ void capsule_conv2d_weight_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
 {
 
 }
