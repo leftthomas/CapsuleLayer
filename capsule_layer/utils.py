@@ -36,7 +36,7 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
 
 capsule_conv2d_input_backward_kernel = '''
 extern "C"
-__global__ void capsule_conv2d_input_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
+__global__ void capsule_conv2d_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
 
 }
@@ -44,7 +44,7 @@ __global__ void capsule_conv2d_input_backward(${Dtype}* grad_input, const ${Dtyp
 
 capsule_conv2d_weight_backward_kernel = '''
 extern "C"
-__global__ void capsule_conv2d_weight_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
+__global__ void capsule_conv2d_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
 
 }
