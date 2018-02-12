@@ -67,12 +67,34 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
 extern "C"
 __global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
-
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int batch_size = ${nthreads} / (${in_capsules} * ${in_length});
+  if (index < ${nthreads}){
+    int batch = index / (${in_capsules} * ${in_length});
+    int ic = (index / ${in_length}) % ${in_capsules};
+    int il = index % ${in_length};
+    for (int oc = 0; oc < ${out_capsules}; ++oc){
+      for (int ol = 0; ol < ${out_length}; ++ol){
+        grad_input[index] += grad_output[batch*${out_capsules}*${out_length}+oc*${out_length}+ol] * weight[ic*${in_length}*${out_capsules}*${out_length}+il*${out_capsules}*${out_length}+oc*${out_length}+ol];
+      }
+    }
+  }
 }
 
 extern "C"
 __global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
-
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int batch_size = ${nthreads} / (${in_capsules} * ${in_length});
+  if (index < ${nthreads}){
+    int batch = index / (${in_capsules} * ${in_length});
+    int ic = (index / ${in_length}) % ${in_capsules};
+    int il = index % ${in_length};
+    for (int oc = 0; oc < ${out_capsules}; ++oc){
+      for (int ol = 0; ol < ${out_length}; ++ol){
+        grad_weight[index] += grad_output[batch*${out_capsules}*${out_length}+oc*${out_length}+ol] * input[ic*${in_length}*${out_capsules}*${out_length}+il*${out_capsules}*${out_length}+oc*${out_length}+ol];
+      }
+    }
+  }
 }
 '''
