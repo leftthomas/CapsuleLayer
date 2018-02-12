@@ -30,7 +30,10 @@ capsule_conv2d_forward_kernel = '''
 extern "C"
 __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
-
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  if (index < ${nthreads}){
+    
+  }
 }
 '''
 
@@ -38,7 +41,10 @@ capsule_conv2d_input_backward_kernel = '''
 extern "C"
 __global__ void capsule_conv2d_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
-
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  if (index < ${nthreads}){
+    
+  }
 }
 '''
 
@@ -46,7 +52,10 @@ capsule_conv2d_weight_backward_kernel = '''
 extern "C"
 __global__ void capsule_conv2d_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
-
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  if (index < ${nthreads}){
+    
+  }
 }
 '''
 
