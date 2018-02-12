@@ -89,16 +89,16 @@ class TestCapsuleLayer(unittest.TestCase):
     #     y1 = CL.capsule_cov2d(a1, w1, padding=1)
     #     y1.backward(go.cuda(1))
     #
-    # def test_capsule_linear_multigpu(self):
-    #     a0 = Variable(torch.randn(6, 7, 8).cuda(0), requires_grad=True)
-    #     a1 = Variable(torch.randn(6, 7, 8).cuda(1), requires_grad=True)
-    #     w0 = Variable(torch.randn(5, 4, 7, 8).double().cuda(0), requires_grad=True)
-    #     w1 = Variable(torch.randn(5, 4, 7, 8).double().cuda(1), requires_grad=True)
-    #     y0 = CL.capsule_linear(a0, w0)
-    #     go = torch.randn(y0.size()).double().cuda()
-    #     y0.backward(go)
-    #     y1 = CL.capsule_linear(a1, w1)
-    #     y1.backward(go.cuda(1))
+    def test_capsule_linear_multigpu(self):
+        a0 = Variable(torch.randn(6, 7, 8).cuda(0), requires_grad=True)
+        a1 = Variable(torch.randn(6, 7, 8).cuda(1), requires_grad=True)
+        w0 = Variable(torch.randn(5, 4, 7, 8).double().cuda(0), requires_grad=True)
+        w1 = Variable(torch.randn(5, 4, 7, 8).double().cuda(1), requires_grad=True)
+        y0 = CL.capsule_linear(a0, w0)
+        go = torch.randn(y0.size()).double().cuda()
+        y0.backward(go)
+        y1 = CL.capsule_linear(a1, w1)
+        y1.backward(go.cuda(1))
     #
     # def test_modules(self):
     #     module = CapsuleConv2d(in_channels=3, out_channels=16, kernel_size=3, in_length=1, out_length=8, padding=1)
