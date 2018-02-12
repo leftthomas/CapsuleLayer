@@ -68,7 +68,7 @@ class TestCapsuleLayer(unittest.TestCase):
         print('gpu mode cost ' + str(time.clock() - start) + 's')
         gx_fast = x_gpu.grad.data.clone()
         gw_fast = w_gpu.grad.data.clone()
-        self.assertTrue(gradcheck(partial(CL.capsule_linear, padding=1), (x_gpu, w_gpu)))
+        self.assertTrue(gradcheck(partial(CL.capsule_linear), (x_gpu, w_gpu)))
 
         x_cpu.requires_grad = True
         w_cpu.requires_grad = True
@@ -77,7 +77,7 @@ class TestCapsuleLayer(unittest.TestCase):
         print('cpu mode cost ' + str(time.clock() - start) + 's')
         gx_ref = x_cpu.grad.data.clone()
         gw_ref = w_cpu.grad.data.clone()
-        self.assertTrue(gradcheck(partial(CL.capsule_linear, padding=1), (x_cpu, w_cpu)))
+        self.assertTrue(gradcheck(partial(CL.capsule_linear), (x_cpu, w_cpu)))
 
         self.assertLess((gx_fast.cpu() - gx_ref).data.abs().max(), 1e-9)
         self.assertLess((gw_fast.cpu() - gw_ref).data.abs().max(), 1e-9)
