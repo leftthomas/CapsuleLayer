@@ -26,19 +26,23 @@ def load_kernel(kernel_name, code, **kwargs):
     return kernel_code.get_function(kernel_name)
 
 
-capsule_conv2d_kernels = '''
+capsule_conv2d_forward_kernel = '''
 extern "C"
 __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
 
 }
+'''
 
+capsule_conv2d_input_backward_kernel = '''
 extern "C"
 __global__ void capsule_conv2d_input_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
 {
 
 }
+'''
 
+capsule_conv2d_weight_backward_kernel = '''
 extern "C"
 __global__ void capsule_conv2d_weight_backward(${Dtype}* grad_input, const ${Dtype}* grad_output)
 {
@@ -46,7 +50,7 @@ __global__ void capsule_conv2d_weight_backward(${Dtype}* grad_input, const ${Dty
 }
 '''
 
-capsule_linear_kernels = '''
+capsule_linear_forward_kernel = '''
 extern "C"
 __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
@@ -62,7 +66,9 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
     }
   }
 }
+'''
 
+capsule_linear_input_backward_kernel = '''
 extern "C"
 __global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
@@ -78,7 +84,9 @@ __global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const
     }
   }
 }
+'''
 
+capsule_linear_weight_backward_kernel = '''
 extern "C"
 __global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
@@ -86,9 +94,11 @@ __global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, cons
   if (index < ${nthreads}){
     int ic = (index / ${in_length}) % ${in_capsules};
     int il = index % ${in_length};
-    // int oc = (index / ${out_length}) % ${out_capsules};
-    // int ol = index % ${out_length};
-    grad_weight[ic*${in_length}+il] += input[ic*${in_length}+il];
+    int oc = (index / (${out_length} * ${in_capsules} * ${in_length})) % ${out_capsules};
+    int ol = (index / (${in_capsules} * ${in_length})) % ${out_length};
+    for (int batch = 0; batch < ${batch_size}; ++batch){
+      grad_weight[index] += grad_output[batch*${out_capsules}*${out_length}+oc*${out_length}+ol] * input[batch*${in_capsules}*${in_length}+ic*${in_length}+il];
+    }
   }
 }
 '''
