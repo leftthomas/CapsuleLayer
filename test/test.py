@@ -46,8 +46,8 @@ class TestCapsuleLayer(unittest.TestCase):
 
     def test_capsule_linear(self):
         print('--------test capsule linear forward--------')
-        x_gpu = Variable(torch.randn(64, 512, 8).double().cuda(), requires_grad=True)
-        w_gpu = Variable(torch.randn(10, 16, 512, 8).double().cuda(), requires_grad=True)
+        x_gpu = Variable(torch.randn(64, 5, 8).double().cuda(), requires_grad=True)
+        w_gpu = Variable(torch.randn(10, 16, 5, 8).double().cuda(), requires_grad=True)
         x_cpu = x_gpu.cpu()
         w_cpu = w_gpu.cpu()
         start = time.clock()
