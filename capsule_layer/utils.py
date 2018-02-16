@@ -32,10 +32,10 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
-    const int n = index / ${in_channels} / ${in_height} / ${in_width};
-    const int c = (index / ${in_height} / ${in_width}) % ${in_channels};
-    const int h = (index / ${in_width}) % ${in_height};
-    const int w = index % ${in_width};
+    const int n = index / ${out_channels} / ${out_height} / ${out_width};
+    const int c = (index / ${out_height} / ${out_width}) % ${out_channels};
+    const int h = (index / ${out_width}) % ${out_height};
+    const int w = index % ${out_width};
     const ${Dtype}* weight = weight_data + c * ${kernel_h} * ${kernel_w};
     ${Dtype} value = 0;
     for (int kh = 0; kh < ${kernel_h}; ++kh) {
