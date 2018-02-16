@@ -82,14 +82,14 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
-    int batch = index / (${out_capsules} * ${out_length});
-    int oc = (index / ${out_length}) % ${out_capsules};
-    int ol = index % ${out_length};
+    const int batch = index / ${out_capsules} / ${out_length};
+    const int oc = (index / ${out_length}) % ${out_capsules};
+    const int ol = index % ${out_length};
     for (int ic = 0; ic < ${in_capsules}; ++ic){
       for (int il = 0; il < ${in_length}; ++il){
-        int input_offset = batch * ${in_capsules} * ${in_length} + ic * ${in_length} + il;
-        int weight_offset = oc * ${out_length} * ${in_capsules} * ${in_length} + ol * ${in_capsules} * ${in_length} + ic
-          * ${in_length} + il;
+        const int input_offset = batch * ${in_capsules} * ${in_length} + ic * ${in_length} + il;
+        const int weight_offset = oc * ${out_length} * ${in_capsules} * ${in_length} + ol * ${in_capsules} 
+          * ${in_length} + ic * ${in_length} + il;
         output_data[index] += input_data[input_offset] * weight_data[weight_offset];
       }
     }
@@ -103,14 +103,14 @@ __global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
-    int batch = index / (${in_capsules} * ${in_length});
-    int ic = (index / ${in_length}) % ${in_capsules};
-    int il = index % ${in_length};
+    const int batch = index / ${in_capsules} / ${in_length};
+    const int ic = (index / ${in_length}) % ${in_capsules};
+    const int il = index % ${in_length};
     for (int oc = 0; oc < ${out_capsules}; ++oc){
       for (int ol = 0; ol < ${out_length}; ++ol){
-        int grad_offset = batch * ${out_capsules} * ${out_length} + oc * ${out_length} + ol;
-        int weight_offset = oc * ${out_length} * ${in_capsules} * ${in_length} + ol * ${in_capsules} * ${in_length} + ic
-          * ${in_length} + il;
+        const int grad_offset = batch * ${out_capsules} * ${out_length} + oc * ${out_length} + ol;
+        const int weight_offset = oc * ${out_length} * ${in_capsules} * ${in_length} + ol * ${in_capsules} 
+          * ${in_length} + ic * ${in_length} + il;
         grad_input[index] += grad_output[grad_offset] * weight[weight_offset];
       }
     }
@@ -124,13 +124,13 @@ __global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, cons
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
-    int ic = (index / ${in_length}) % ${in_capsules};
-    int il = index % ${in_length};
-    int oc = (index / (${out_length} * ${in_capsules} * ${in_length})) % ${out_capsules};
-    int ol = (index / (${in_capsules} * ${in_length})) % ${out_length};
+    const int ic = (index / ${in_length}) % ${in_capsules};
+    const int il = index % ${in_length};
+    const int oc = (index / ${out_length} / ${in_capsules} / ${in_length}) % ${out_capsules};
+    const int ol = (index / ${in_capsules} / ${in_length}) % ${out_length};
     for (int batch = 0; batch < ${batch_size}; ++batch){
-      int grad_offset = batch * ${out_capsules} * ${out_length} + oc * ${out_length} + ol;
-      int input_offset = batch * ${in_capsules} * ${in_length} +ic * ${in_length} + il;
+      const int grad_offset = batch * ${out_capsules} * ${out_length} + oc * ${out_length} + ol;
+      const int input_offset = batch * ${in_capsules} * ${in_length} +ic * ${in_length} + il;
       grad_weight[index] += grad_output[grad_offset] * input[input_offset];
     }
   }
