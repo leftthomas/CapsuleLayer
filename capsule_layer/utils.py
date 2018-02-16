@@ -5,10 +5,10 @@ import cupy
 import torch
 
 Stream = namedtuple('Stream', ['ptr'])
-cuda_num_threads = 1024
+num_threads = 1024
 
 
-def get_thread_blocks(n, k=cuda_num_threads):
+def get_thread_blocks(n, k=num_threads):
     return (n + k - 1) // k
 
 
@@ -32,7 +32,24 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
-    
+    const int n = index / ${out_channels} / ${out_height} / ${out_width};
+    const int c = (index / ${out_height} / ${out_width}) % ${out_channels};
+    const int h = (index / ${out_width}) % ${out_height};
+    const int w = index % ${out_width};
+    const ${Dtype}* weight = weight_data + c * ${kernel_h} * ${kernel_w};
+    ${Dtype} value = 0;
+    for (int kh = 0; kh < ${kernel_h}; ++kh) {
+      for (int kw = 0; kw < ${kernel_w}; ++kw) {
+        const int h_in = -${pad_h} + h * ${stride_h};
+        const int w_in = -${pad_w} + w * ${stride_w};
+        if ((h_in >= 0) && (h_in < ${in_height}) && (w_in >= 0) && (w_in < ${in_width})) {
+          const int offset = ((n * ${in_channels} + c) * ${in_height} + h_in) * ${in_width} + w_in;
+          value += (*weight) * input_data[offset];
+        }
+        ++weight;
+      }
+    }
+    output_data[index] = value;
   }
 }
 '''
