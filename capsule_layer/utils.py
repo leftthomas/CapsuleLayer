@@ -43,6 +43,14 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
         const int h_in = -${pad_h} + h * ${stride_h};
         const int w_in = -${pad_w} + w * ${stride_w};
         if ((h_in >= 0) && (h_in < ${in_height}) && (w_in >= 0) && (w_in < ${in_width})) {
+          for (int ic = 0; ic < ${in_capsules}; ++ic){
+            for (int il = 0; il < ${in_length}; ++il){
+              const int input_offset = batch * ${in_capsules} * ${in_length} + ic * ${in_length} + il;
+              const int weight_offset = oc * ${out_length} * ${in_capsules} * ${in_length} + ol * ${in_capsules} 
+                * ${in_length} + ic * ${in_length} + il;
+              output_data[index] += input_data[input_offset] * weight_data[weight_offset];
+            }
+          }
           const int offset = ((n * ${in_channels} + c) * ${in_height} + h_in) * ${in_width} + w_in;
           value += (*weight) * input_data[offset];
         }
