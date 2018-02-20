@@ -44,8 +44,8 @@ class TestCapsuleLayer(unittest.TestCase):
     #     self.assertLess((gx_fast.cpu() - gx_ref).data.abs().max(), 1e-9)
     #     self.assertLess((gw_fast.cpu() - gw_ref).data.abs().max(), 1e-9)
 
-    def test_capsule_linear(self):
-        print('--------test capsule linear forward--------')
+    def test_capsule_linear_sum(self):
+        print('--------test capsule linear forward of sum routing--------')
         x_cpu = Variable(torch.randn(64, 512, 8).double(), requires_grad=True)
         w_cpu = Variable(torch.randn(10, 16, 512, 8).double(), requires_grad=True)
         x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
@@ -58,7 +58,7 @@ class TestCapsuleLayer(unittest.TestCase):
         print('cpu mode cost ' + str(time.clock() - start) + 's')
         self.assertLess((y_fast.cpu() - y_ref).data.abs().max(), 1e-9)
 
-        print('--------test capsule linear backward--------')
+        print('--------test capsule linear backward of sum routing--------')
         go_cpu = torch.randn(y_ref.size()).double()
         go_gpu = go_cpu.cuda()
         start = time.clock()

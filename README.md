@@ -1,5 +1,5 @@
 # Capsule Layer
-CuPy implementations of fused PyTorch Capsule Layer.
+CuPy fused PyTorch Capsule Layer.
 
 ### Requirements
 * PyTorch
@@ -26,7 +26,7 @@ pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
 
 ### Examples
 * CapsuleConv2d
-```
+```python
 import torch
 from torch.autograd import Variable
 from capsule_layer.modules import CapsuleConv2d
@@ -36,7 +36,7 @@ module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, in_length=
 y = module(x)
 ```
 * CapsuleLinear
-```
+```python
 import torch
 from torch.autograd import Variable
 from capsule_layer.modules import CapsuleLinear
@@ -47,9 +47,9 @@ y = module(x)
 ```
 
 ## Note
-The routing algorithm isn't implemented now! If someone could implement it with
-single CUDA Kernel Function, please let me know.
+The dynamic routing algorithm or other routing algorithms isn't implemented now! 
+If someone could implement it with single CUDA Kernel Function, please let me know.
 
 ## Credits
-Referenced CuPy fused PyTorch:
+Referenced CuPy fused PyTorch neural networks ops:
 [PyINN by @szagoruyko](https://github.com/szagoruyko/pyinn)

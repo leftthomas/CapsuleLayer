@@ -4,11 +4,11 @@ from torch.autograd import Variable
 from torch.nn.modules.utils import _pair
 
 
-def capsule_conv2d_cpu(input, weight, stride, padding, with_routing, num_iterations):
+def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterations):
     if input.dim() != 4:
-        raise ValueError("Expected 4D tensor as input, got {}D tensor instead.".format(input.dim()))
+        raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if input.is_cuda or weight.is_cuda:
-        raise ValueError("Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.")
+        raise ValueError('Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.')
     kernel_size = (weight.size(2), weight.size(3))
     in_length = weight.size(4)
     stride = _pair(stride)
@@ -32,31 +32,36 @@ def capsule_conv2d_cpu(input, weight, stride, padding, with_routing, num_iterati
     priors = input_windows[:, None, :, :, :, :, None, :] @ weight[None, :, :, None, None, :, :, :]
 
     # [batch_size, num_out_plane, num_height_kernel, num_width_kernel, length_capsule]
-    if with_routing:
-        out = route_conv2d(priors, num_iterations)
+    if routing_type == 'sum':
+        out = priors.sum(dim=-3, keepdim=True).sum(dim=2, keepdim=True).squeeze(dim=-2).squeeze(dim=-2).squeeze(dim=2)
+    elif routing_type == 'dynamic':
+        out = dynamic_route_conv2d(priors, num_iterations)
     else:
-        out = priors.sum(dim=-3, keepdim=True).sum(dim=2, keepdim=True).squeeze(dim=-2).squeeze(dim=-2).squeeze(
-            dim=2)
+        # TODO
+        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type.capitalize()))
     out = out.view(*out.size()[:2], -1, out.size(-1)).transpose(-1, -2)
     out = out.contiguous().view(out.size(0), -1, H_out, W_out)
     return out
 
 
-def capsule_linear_cpu(input, weight, with_routing, num_iterations):
+def capsule_linear_cpu(input, weight, routing_type, num_iterations):
     if input.dim() != 3:
-        raise ValueError("Expected 3D tensor as input, got {}D tensor instead.".format(input.dim()))
+        raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if input.is_cuda or weight.is_cuda:
-        raise ValueError("Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.")
+        raise ValueError('Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.')
     weight = weight.transpose(1, 2)
     priors = (weight[:, None, :, :, :] @ input[None, :, :, :, None]).squeeze(dim=-1)
-    if with_routing:
-        out = route_linear(priors, num_iterations)
-    else:
+    if routing_type == 'sum':
         out = priors.sum(dim=2, keepdim=True).squeeze(dim=-2).transpose(0, 1)
+    elif routing_type == 'dynamic':
+        out = dynamic_route_linear(priors, num_iterations)
+    else:
+        # TODO
+        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type.capitalize()))
     return out
 
 
-def route_conv2d(input, num_iterations):
+def dynamic_route_conv2d(input, num_iterations):
     logits = Variable(torch.zeros(*input.size())).type_as(input)
     outputs = None
     for r in range(num_iterations):
@@ -68,7 +73,7 @@ def route_conv2d(input, num_iterations):
     return outputs.squeeze(dim=-2).squeeze(dim=-2).squeeze(dim=2)
 
 
-def route_linear(input, num_iterations):
+def dynamic_route_linear(input, num_iterations):
     logits = Variable(torch.zeros(*input.size())).type_as(input)
     outputs = None
     for r in range(num_iterations):

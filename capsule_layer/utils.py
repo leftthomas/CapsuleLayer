@@ -26,9 +26,9 @@ def load_kernel(kernel_name, code, **kwargs):
     return kernel_code.get_function(kernel_name)
 
 
-capsule_conv2d_forward_kernel = '''
+capsule_conv2d_sum_forward_kernel = '''
 extern "C"
-__global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
+__global__ void capsule_conv2d_sum_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
@@ -54,9 +54,9 @@ __global__ void capsule_conv2d_forward(const ${Dtype}* input_data, const ${Dtype
 }
 '''
 
-capsule_conv2d_input_backward_kernel = '''
+capsule_conv2d_sum_input_backward_kernel = '''
 extern "C"
-__global__ void capsule_conv2d_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
+__global__ void capsule_conv2d_sum_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
@@ -65,9 +65,9 @@ __global__ void capsule_conv2d_input_backward(const ${Dtype}* grad_output, const
 }
 '''
 
-capsule_conv2d_weight_backward_kernel = '''
+capsule_conv2d_sum_weight_backward_kernel = '''
 extern "C"
-__global__ void capsule_conv2d_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
+__global__ void capsule_conv2d_sum_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
@@ -76,9 +76,9 @@ __global__ void capsule_conv2d_weight_backward(const ${Dtype}* grad_output, cons
 }
 '''
 
-capsule_linear_forward_kernel = '''
+capsule_linear_sum_forward_kernel = '''
 extern "C"
-__global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
+__global__ void capsule_linear_sum_forward(const ${Dtype}* input_data, const ${Dtype}* weight_data, ${Dtype}* output_data)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
@@ -97,9 +97,9 @@ __global__ void capsule_linear_forward(const ${Dtype}* input_data, const ${Dtype
 }
 '''
 
-capsule_linear_input_backward_kernel = '''
+capsule_linear_sum_input_backward_kernel = '''
 extern "C"
-__global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
+__global__ void capsule_linear_sum_input_backward(const ${Dtype}* grad_output, const ${Dtype}* weight, ${Dtype}* grad_input)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
@@ -118,9 +118,9 @@ __global__ void capsule_linear_input_backward(const ${Dtype}* grad_output, const
 }
 '''
 
-capsule_linear_weight_backward_kernel = '''
+capsule_linear_sum_weight_backward_kernel = '''
 extern "C"
-__global__ void capsule_linear_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
+__global__ void capsule_linear_sum_weight_backward(const ${Dtype}* grad_output, const ${Dtype}* input, ${Dtype}* grad_weight)
 {
   int index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ${nthreads}){
