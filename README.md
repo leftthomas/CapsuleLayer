@@ -88,8 +88,8 @@ y = module(x)
 ```
 
 ## Note
-The dynamic and matrix routing algorithms isn't implemented now! 
-If someone could implement it with single CUDA Kernel Function, please let me know.
+The dynamic and matrix routing algorithms isn't implemented now, and the cpu version could be speed up and optimized.
+If someone could implement them, please let me know.
 
 ## Credits
 Referenced CuPy fused PyTorch neural networks ops:
