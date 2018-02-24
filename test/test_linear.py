@@ -27,12 +27,12 @@ def test_function(routing_type, num_iterations):
     y_fast.backward(go_gpu)
     gx_fast = x_gpu.grad.data.clone()
     gw_fast = w_gpu.grad.data.clone()
-    # self.assertTrue(gradcheck(partial(CL.capsule_linear), (x_gpu, w_gpu)))
+    # assert gradcheck(partial(CL.capsule_linear), (x_gpu, w_gpu))
 
     y_ref.backward(go_cpu)
     gx_ref = x_cpu.grad.data.clone()
     gw_ref = w_cpu.grad.data.clone()
-    # self.assertTrue(gradcheck(partial(CL.capsule_linear), (x_cpu, w_cpu)))
+    assert gradcheck(partial(CL.capsule_linear), (x_cpu, w_cpu))
 
     assert (gx_fast.cpu() - gx_ref).abs().max() < 1e-9
     assert (gw_fast.cpu() - gw_ref).abs().max() < 1e-9
