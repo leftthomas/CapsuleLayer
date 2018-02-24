@@ -24,7 +24,7 @@ class CapsuleConv2d(nn.Module):
         out_length (int): length of each output sample's each capsule
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
-        routing_type (str, optional):  routing algorithm type
+        routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
         num_iterations (int, optional): number of routing iterations, it didn't work for routing_type -- sum
 
     Shape:
@@ -103,7 +103,7 @@ class CapsuleLinear(nn.Module):
          out_capsules (int): number of each output sample's capsules
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
-         routing_type (str, optional):  routing algorithm type
+         routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
          num_iterations (int, optional): number of routing iterations, it didn't work for routing_type -- sum
 
      Shape:
