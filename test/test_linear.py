@@ -9,13 +9,13 @@ sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
-test_datas = [('sum', None), ('dynamic', 1), ('dynamic', 3), ('EM', 2), ('EM', 4)]
+test_datas = [('sum', None)]
 
 
 @pytest.mark.parametrize('routing_type, num_iterations', test_datas)
 def test_function(routing_type, num_iterations):
-    x_cpu = Variable(torch.randn(64, 512, 8).double(), requires_grad=True)
-    w_cpu = Variable(torch.randn(10, 16, 512, 8).double(), requires_grad=True)
+    x_cpu = Variable(torch.randn(64, 5, 8).double(), requires_grad=True)
+    w_cpu = Variable(torch.randn(10, 16, 5, 8).double(), requires_grad=True)
     x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
     w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
     y_fast = CL.capsule_linear(x_gpu, w_gpu, routing_type=routing_type, num_iterations=num_iterations)
