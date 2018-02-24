@@ -1,124 +1,65 @@
 import sys
-import time
-import unittest
+import pytest
 from functools import partial
 
 import torch
 from torch.autograd import Variable, gradcheck
 
-sys.path.append("..")
+# sys.path.append("..")
 import capsule_layer as CL
-from capsule_layer import CapsuleConv2d, CapsuleLinear
+from capsule_layer import CapsuleConv2d
+
+test_datas = [('sum', None), ('dynamic', 1), ('dynamic', 3), ('EM', 2), ('EM', 4)]
 
 
-class TestCapsuleLayer(unittest.TestCase):
+@pytest.mark.parametrize('routing_type, num_iterations', test_datas)
+def test_function(routing_type, num_iterations):
+    x_cpu = Variable(torch.randn(6, 3, 28, 32).double(), requires_grad=True)
+    w_cpu = Variable(torch.randn(64, 3, 3, 2, 1, 8).double(), requires_grad=True)
+    x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
+    w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
+    y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride=1, padding=1, routing_type=routing_type,
+                              num_iterations=num_iterations)
+    y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride=1, padding=1, routing_type=routing_type,
+                             num_iterations=num_iterations)
+    assert (y_fast.cpu() - y_ref).data.abs().max() < 1e-9
 
-    def test_capsule_conv2d(self):
-        x_gpu = Variable(torch.randn(6, 3, 28, 32).double().cuda(), requires_grad=True)
-        w_gpu = Variable(torch.randn(64, 3, 3, 2, 1, 8).double().cuda(), requires_grad=True)
-        x_cpu = x_gpu.cpu()
-        w_cpu = w_gpu.cpu()
-        y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride=1, padding=1)
-        y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride=1, padding=1)
-        go_gpu = torch.randn(y_fast.size()).double().cuda()
-        go_cpu = go_gpu.cpu()
+    go_cpu = torch.randn(y_ref.size()).double()
+    go_gpu = go_cpu.cuda()
+    y_fast.backward(go_gpu)
+    gx_fast = x_gpu.grad.data.clone()
+    gw_fast = w_gpu.grad.data.clone()
+    assert gradcheck(partial(CL.capsule_cov2d, padding=1, routing_type=routing_type, num_iterations=num_iterations),
+                     (x_gpu, w_gpu))
 
-        self.assertLess((y_fast.cpu() - y_ref).data.abs().max(), 1e-9)
+    y_ref.backward(go_cpu)
+    gx_ref = x_cpu.grad.data.clone()
+    gw_ref = w_cpu.grad.data.clone()
+    assert gradcheck(partial(CL.capsule_cov2d, padding=1, routing_type=routing_type, num_iterations=num_iterations),
+                     (x_cpu, w_cpu))
 
-        x_gpu.requires_grad = True
-        w_gpu.requires_grad = True
-        y_fast.backward(go_gpu)
-        gx_fast = x_gpu.grad.data.clone()
-        gw_fast = w_gpu.grad.data.clone()
-
-        self.assertTrue(gradcheck(partial(CL.capsule_cov2d, padding=1), (x_gpu, w_gpu,)))
-
-        x_cpu.requires_grad = True
-        w_cpu.requires_grad = True
-        y_ref.backward(go_cpu)
-        gx_ref = x_cpu.grad.data.clone()
-        gw_ref = w_cpu.grad.data.clone()
-
-        self.assertTrue(gradcheck(partial(CL.capsule_cov2d, padding=1), (x_cpu, w_cpu,)))
-
-        self.assertLess((gx_fast.cpu() - gx_ref).data.abs().max(), 1e-9)
-        self.assertLess((gw_fast.cpu() - gw_ref).data.abs().max(), 1e-9)
-
-    def test_capsule_linear(self):
-        print('--------test capsule linear forward of sum routing--------')
-        x_cpu = Variable(torch.randn(64, 512, 8).double(), requires_grad=True)
-        w_cpu = Variable(torch.randn(10, 16, 512, 8).double(), requires_grad=True)
-        x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
-        w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
-        start = time.clock()
-        y_fast = CL.capsule_linear(x_gpu, w_gpu)
-        print('gpu mode cost ' + str(time.clock() - start) + 's')
-        start = time.clock()
-        y_ref = CL.capsule_linear(x_cpu, w_cpu)
-        print('cpu mode cost ' + str(time.clock() - start) + 's')
-        self.assertLess((y_fast.cpu() - y_ref).data.abs().max(), 1e-9)
-
-        print('--------test capsule linear backward of sum routing--------')
-        go_cpu = torch.randn(y_ref.size()).double()
-        go_gpu = go_cpu.cuda()
-        start = time.clock()
-        y_fast.backward(go_gpu)
-        print('gpu mode cost ' + str(time.clock() - start) + 's')
-        gx_fast = x_gpu.grad.data.clone()
-        gw_fast = w_gpu.grad.data.clone()
-        # self.assertTrue(gradcheck(partial(CL.capsule_linear), (x_gpu, w_gpu)))
-
-        start = time.clock()
-        y_ref.backward(go_cpu)
-        print('cpu mode cost ' + str(time.clock() - start) + 's')
-        gx_ref = x_cpu.grad.data.clone()
-        gw_ref = w_cpu.grad.data.clone()
-        # self.assertTrue(gradcheck(partial(CL.capsule_linear), (x_cpu, w_cpu)))
-
-        self.assertLess((gx_fast.cpu() - gx_ref).abs().max(), 1e-9)
-        self.assertLess((gw_fast.cpu() - gw_ref).abs().max(), 1e-9)
-
-    # def test_capsule_conv2d_multigpu(self):
-    #     a0 = Variable(torch.randn(6, 3, 28, 32).cuda(0), requires_grad=True)
-    #     a1 = Variable(torch.randn(6, 3, 28, 32).cuda(1), requires_grad=True)
-    #     w0 = Variable(torch.randn(64, 3, 3, 2, 1, 8).double().cuda(0), requires_grad=True)
-    #     w1 = Variable(torch.randn(64, 3, 3, 2, 1, 8).double().cuda(1), requires_grad=True)
-    #     y0 = CL.capsule_cov2d(a0, w0, padding=1)
-    #     go = torch.randn(y0.size()).double().cuda()
-    #     y0.backward(go)
-    #     y1 = CL.capsule_cov2d(a1, w1, padding=1)
-    #     y1.backward(go.cuda(1))
-    #
-    # def test_capsule_linear_multigpu(self):
-    #     a0 = Variable(torch.randn(6, 7, 8).cuda(0), requires_grad=True)
-    #     a1 = Variable(torch.randn(6, 7, 8).cuda(1), requires_grad=True)
-    #     w0 = Variable(torch.randn(5, 4, 7, 8).double().cuda(0), requires_grad=True)
-    #     w1 = Variable(torch.randn(5, 4, 7, 8).double().cuda(1), requires_grad=True)
-    #     y0 = CL.capsule_linear(a0, w0)
-    #     go = torch.randn(y0.size()).double().cuda()
-    #     y0.backward(go)
-    #     y1 = CL.capsule_linear(a1, w1)
-    #     y1.backward(go.cuda(1))
-    #
-    # def test_modules(self):
-    #     module = CapsuleConv2d(in_channels=3, out_channels=16, kernel_size=3, in_length=1, out_length=8, padding=1)
-    #     x = Variable(torch.randn(10, 3, 56, 64))
-    #     y_cpu = module(x)
-    #     y_cuda = module.cuda()(x.cuda())
-    #     self.assertLess((y_cpu - y_cuda.cpu()).data.abs().max(), 1e-6)
-    #
-    #     module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16)
-    #     x = Variable(torch.randn(16, 32, 8))
-    #     y_cpu = module(x)
-    #     y_cuda = module.cuda()(x.cuda())
-    #     self.assertLess((y_cpu - y_cuda.cpu()).data.abs().max(), 1e-6)
+    assert (gx_fast.cpu() - gx_ref).data.abs().max() < 1e-9
+    assert (gw_fast.cpu() - gw_ref).data.abs().max() < 1e-9
 
 
-if __name__ == "__main__":
-    # module = CapsuleLinear(in_capsules=3, out_capsules=2, in_length=2, out_length=3)
-    # x = Variable(torch.randn(2, 3, 2))
-    # y = module.cuda()(x.cuda())
-    # y.backward(torch.randn(y.size()).cuda())
-    # print('weight.grad:')
-    # print(module.weight.grad)
-    unittest.main()
+@pytest.mark.parametrize('routing_type, num_iterations', test_datas)
+def test_module(routing_type, num_iterations):
+    module = CapsuleConv2d(in_channels=3, out_channels=16, kernel_size=3, in_length=1, out_length=8,
+                           padding=1, routing_type=routing_type, num_iterations=num_iterations)
+    x = Variable(torch.randn(10, 3, 56, 64))
+    y_cpu = module(x)
+    y_cuda = module.cuda()(x.cuda())
+    assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-6
+
+
+@pytest.mark.parametrize('routing_type, num_iterations', test_datas)
+def test_multigpu(routing_type, num_iterations):
+    a0 = Variable(torch.randn(6, 3, 28, 32).cuda(0), requires_grad=True)
+    a1 = Variable(torch.randn(6, 3, 28, 32).cuda(1), requires_grad=True)
+    w0 = Variable(torch.randn(64, 3, 3, 2, 1, 8).double().cuda(0), requires_grad=True)
+    w1 = Variable(torch.randn(64, 3, 3, 2, 1, 8).double().cuda(1), requires_grad=True)
+    y0 = CL.capsule_cov2d(a0, w0, padding=1, routing_type=routing_type, num_iterations=num_iterations)
+    go = torch.randn(y0.size()).double().cuda()
+    y0.backward(go)
+    y1 = CL.capsule_cov2d(a1, w1, padding=1, routing_type=routing_type, num_iterations=num_iterations)
+    y1.backward(go.cuda(1))

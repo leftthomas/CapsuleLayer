@@ -1,11 +1,7 @@
-import sys
 import pytest
 from functools import partial
-
 import torch
 from torch.autograd import Variable, gradcheck
-
-sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
@@ -18,7 +14,7 @@ def test_function(routing_type, num_iterations):
     w_cpu = Variable(torch.randn(10, 16, 512, 8).double(), requires_grad=True)
     x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
     w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
-    y_fast = CL.capsule_linear(x_gpu, w_gpu)
+    y_fast = CL.capsule_linear(x_gpu, w_gpu, routing_type=routing_type, num_iterations=num_iterations)
     y_ref = CL.capsule_linear(x_cpu, w_cpu, routing_type=routing_type, num_iterations=num_iterations)
     assert (y_fast.cpu() - y_ref).data.abs().max() < 1e-9
 
@@ -27,12 +23,14 @@ def test_function(routing_type, num_iterations):
     y_fast.backward(go_gpu)
     gx_fast = x_gpu.grad.data.clone()
     gw_fast = w_gpu.grad.data.clone()
-    # assert gradcheck(partial(CL.capsule_linear), (x_gpu, w_gpu))
+    assert gradcheck(partial(CL.capsule_linear, routing_type=routing_type, num_iterations=num_iterations),
+                     (x_gpu, w_gpu))
 
     y_ref.backward(go_cpu)
     gx_ref = x_cpu.grad.data.clone()
     gw_ref = w_cpu.grad.data.clone()
-    assert gradcheck(partial(CL.capsule_linear), (x_cpu, w_cpu))
+    assert gradcheck(partial(CL.capsule_linear, routing_type=routing_type, num_iterations=num_iterations),
+                     (x_cpu, w_cpu))
 
     assert (gx_fast.cpu() - gx_ref).abs().max() < 1e-9
     assert (gw_fast.cpu() - gw_ref).abs().max() < 1e-9
@@ -57,5 +55,5 @@ def test_multigpu(routing_type, num_iterations):
     y0 = CL.capsule_linear(a0, w0, routing_type=routing_type, num_iterations=num_iterations)
     go = torch.randn(y0.size()).double().cuda()
     y0.backward(go)
-    y1 = CL.capsule_linear(a1, w1)
+    y1 = CL.capsule_linear(a1, w1, routing_type=routing_type, num_iterations=num_iterations)
     y1.backward(go.cuda(1))
