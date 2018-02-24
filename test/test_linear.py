@@ -1,7 +1,11 @@
-import pytest
+import sys
 from functools import partial
+
+import pytest
 import torch
 from torch.autograd import Variable, gradcheck
+
+sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
