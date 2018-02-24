@@ -54,10 +54,10 @@ def test_module(routing_type, num_iterations):
     print('--------test capsule linear module of {} routing--------'.format(routing_type))
     module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16, routing_type=routing_type,
                            num_iterations=num_iterations)
-    x = Variable(torch.randn(16, 32, 8).double())
+    x = Variable(torch.randn(16, 32, 8))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
-    assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-9
+    assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-5
 
 
 @pytest.mark.parametrize('routing_type, num_iterations', test_datas)
