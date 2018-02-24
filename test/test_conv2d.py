@@ -1,7 +1,7 @@
 import sys
-import pytest
 from functools import partial
 
+import pytest
 import torch
 from torch.autograd import Variable, gradcheck
 
@@ -9,10 +9,10 @@ sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleConv2d
 
-test_datas = [('sum', None), ('dynamic', 1), ('dynamic', 3), ('EM', 2), ('EM', 4)]
+test_data = [('sum', 1), ('dynamic', 2), ('EM', 3)]
 
 
-@pytest.mark.parametrize('routing_type, num_iterations', test_datas)
+@pytest.mark.parametrize('routing_type, num_iterations', test_data)
 def test_function(routing_type, num_iterations):
     x_cpu = Variable(torch.randn(6, 3, 28, 32).double(), requires_grad=True)
     w_cpu = Variable(torch.randn(64, 3, 3, 2, 1, 8).double(), requires_grad=True)
@@ -42,7 +42,7 @@ def test_function(routing_type, num_iterations):
     assert (gw_fast.cpu() - gw_ref).data.abs().max() < 1e-9
 
 
-@pytest.mark.parametrize('routing_type, num_iterations', test_datas)
+@pytest.mark.parametrize('routing_type, num_iterations', test_data)
 def test_module(routing_type, num_iterations):
     module = CapsuleConv2d(in_channels=3, out_channels=16, kernel_size=3, in_length=1, out_length=8,
                            padding=1, routing_type=routing_type, num_iterations=num_iterations)
@@ -52,7 +52,7 @@ def test_module(routing_type, num_iterations):
     assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-6
 
 
-@pytest.mark.parametrize('routing_type, num_iterations', test_datas)
+@pytest.mark.parametrize('routing_type, num_iterations', test_data)
 def test_multigpu(routing_type, num_iterations):
     a0 = Variable(torch.randn(6, 3, 28, 32).cuda(0), requires_grad=True)
     a1 = Variable(torch.randn(6, 3, 28, 32).cuda(1), requires_grad=True)
