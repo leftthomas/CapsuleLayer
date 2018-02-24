@@ -44,7 +44,7 @@ def test_function(routing_type, num_iterations):
 def test_module(routing_type, num_iterations):
     module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16, routing_type=routing_type,
                            num_iterations=num_iterations)
-    x = Variable(torch.randn(16, 32, 8))
+    x = Variable(torch.randn(128, 32, 8))
     y_cpu = module(x)
     y_cuda = module.cuda()(Variable(x.data.cuda(), requires_grad=True))
     assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-4
