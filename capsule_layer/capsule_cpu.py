@@ -38,7 +38,7 @@ def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterati
         out = dynamic_route_conv2d(priors, num_iterations)
     else:
         # TODO
-        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type.capitalize()))
+        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type))
     out = out.view(*out.size()[:2], -1, out.size(-1)).transpose(-1, -2)
     out = out.contiguous().view(out.size(0), -1, H_out, W_out)
     return out
@@ -57,7 +57,7 @@ def capsule_linear_cpu(input, weight, routing_type, num_iterations):
         out = dynamic_route_linear(priors, num_iterations)
     else:
         # TODO
-        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type.capitalize()))
+        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type))
     return out
 
 

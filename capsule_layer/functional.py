@@ -1,6 +1,7 @@
 import torch
 from torch.autograd import Function
 from torch.nn.modules.utils import _pair
+
 from capsule_layer.capsule_cpu import capsule_conv2d_cpu, capsule_linear_cpu
 from capsule_layer.utils import load_kernel, Dtype, Stream, num_threads, get_thread_blocks, \
     capsule_conv2d_sum_forward_kernel, capsule_conv2d_sum_input_backward_kernel, \
@@ -50,7 +51,7 @@ class CapsuleConv2d(Function):
             else:
                 # TODO
                 raise NotImplementedError(
-                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type.capitalize()))
+                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type))
 
         self.save_for_backward(input, weight)
         return output
@@ -104,7 +105,7 @@ class CapsuleConv2d(Function):
             else:
                 # TODO
                 raise NotImplementedError(
-                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type.capitalize()))
+                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type))
 
         return grad_input, grad_weight
 
@@ -140,7 +141,7 @@ class CapsuleLinear(Function):
             else:
                 # TODO
                 raise NotImplementedError(
-                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type.capitalize()))
+                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type))
 
         self.save_for_backward(input, weight)
         return output
@@ -180,7 +181,7 @@ class CapsuleLinear(Function):
             else:
                 # TODO
                 raise NotImplementedError(
-                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type.capitalize()))
+                    '{} routing algorithm is not implemented on gpu.'.format(self.routing_type))
 
         return grad_input, grad_weight
 
