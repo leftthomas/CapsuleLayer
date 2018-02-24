@@ -104,7 +104,7 @@ class CapsuleLinear(nn.Module):
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
          routing_type (str, optional):  routing algorithm type
-         num_iterations (int, optional): number of routing iterations
+         num_iterations (int, optional): number of routing iterations, it didn't work for routing_type -- sum
 
      Shape:
          - Input: :math:`(N, in_capsules, in_length)`
