@@ -81,7 +81,7 @@ class CapsuleConv2d(nn.Module):
         self.routing_type = routing_type
         self.num_iterations = num_iterations
         self.weight = Parameter(
-            torch.Tensor(out_channels // out_length, in_channels // in_length, *kernel_size, in_length, out_length))
+            torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, in_length, out_length))
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations)
@@ -130,7 +130,7 @@ class CapsuleLinear(nn.Module):
         self.out_capsules = out_capsules
         self.routing_type = routing_type
         self.num_iterations = num_iterations
-        self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_capsules, in_length))
+        self.weight = Parameter(torch.randn(out_capsules, out_length, in_capsules, in_length))
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.routing_type, self.num_iterations)
