@@ -25,7 +25,7 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type
-        num_iterations (int, optional): number of routing iterations
+        num_iterations (int, optional): number of routing iterations, it didn't work for routing_type -- sum
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
