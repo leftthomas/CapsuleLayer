@@ -21,4 +21,4 @@ setup_info = dict(
     zip_safe=True
 )
 
-setup(**setup_info, install_requires=['torch', 'cupy'])
+setup(**setup_info, install_requires=['torch', 'cupy', 'pytest'])

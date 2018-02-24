@@ -22,6 +22,10 @@ pip install setuptools
 ```
 pip install fastrlock
 ```
+* pytest
+```
+pip install pytest
+```
 * CuPy
 ```
 pip install cupy
