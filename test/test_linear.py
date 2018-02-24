@@ -9,7 +9,7 @@ sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
-test_datas = [('sum', None)]
+test_datas = [('sum', None), ('dynamic', 1), ('dynamic', 3), ('EM', 2), ('EM', 4)]
 
 
 @pytest.mark.parametrize('routing_type, num_iterations', test_datas)
