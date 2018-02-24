@@ -57,7 +57,7 @@ def test_module(routing_type, num_iterations):
     x = Variable(torch.randn(16, 32, 8))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
-    assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-5
+    assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-4
 
 
 @pytest.mark.parametrize('routing_type, num_iterations', test_datas)
