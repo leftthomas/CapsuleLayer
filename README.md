@@ -1,5 +1,4 @@
-Capsule Layer
-=====
+# Capsule Layer
 CuPy fused PyTorch Capsule Layer, based on Hao Ren's paper [Convolutional Capsule Network for Image Classification](xxx).
 
 The purpose of this package is to contain CUDA ops written in Python with CuPy, which is not a PyTorch dependency.
@@ -92,9 +91,14 @@ y = module(x)
 ```
 
 ## Note
-The dynamic and matrix routing algorithms isn't implemented now, and the cpu version could be speed up and optimized.
-If someone could implement them, please let me know.
+The dynamic and matrix routing algorithms isn't implemented now, the cpu version could be speed up and optimized.
+
+## Contribution
+Any contributions to Capsule Layer are welcome!
+
+## Copyright and License
+Capsule Layer is provided under the [MIT License](LICENSE).
 
 ## Credits
 Referenced CuPy fused PyTorch neural networks ops:
-[PyINN by @szagoruyko](https://github.com/szagoruyko/pyinn)
+[PyINN by @szagoruyko](https://github.com/szagoruyko/pyinn).
