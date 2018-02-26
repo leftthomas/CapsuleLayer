@@ -10,12 +10,12 @@ import capsule_layer as CL
 from capsule_layer import CapsuleConv2d
 
 test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length, out_length,
-              stride, padding, routing_type, num_iterations) for batch_size in [1, 2, 3, 4] for height in [5, 7, 8, 12]
-             for width in [5, 7, 8, 12] for in_length in [1, 2, 3, 4] for out_length in [1, 2, 3, 4] for kernel_size_h
+              stride, padding, routing_type, num_iterations) for batch_size in [1, 2, 3] for height in [5, 8, 12]
+             for width in [5, 8, 12] for in_length in [1, 2, 3] for out_length in [1, 2, 3] for kernel_size_h
              in [1, 2, 3] for kernel_size_w in [1, 2, 3] for in_channels in
-             [1 * in_length, 2 * in_length, 3 * in_length, 4 * in_length] for out_channels in
-             [1 * out_length, 2 * out_length, 3 * out_length, 4 * out_length] for stride in [1, 2, 3] for padding in
-             [0, 1, 2, 3] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations in [1, 2, 3, 4]]
+             [1 * in_length, 2 * in_length, 3 * in_length] for out_channels in
+             [1 * out_length, 2 * out_length, 3 * out_length] for stride in [1, 2, 3] for padding in
+             [0, 1, 2] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations in [1, 2, 3, 4]]
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '

@@ -10,8 +10,8 @@ import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
 test_data = [(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations) for batch_size
-             in [1, 2, 3, 4] for in_capsules in [1, 2, 5, 8] for out_capsules in [1, 2, 5, 8] for in_length in
-             [1, 2, 3, 4] for out_length in [1, 2, 3, 4] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations
+             in [1, 2, 3] for in_capsules in [1, 2, 5] for out_capsules in [1, 2, 5] for in_length in
+             [1, 2, 3] for out_length in [1, 2, 3] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations
              in [1, 2, 3, 4]]
 
 
