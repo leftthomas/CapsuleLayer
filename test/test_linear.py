@@ -14,7 +14,7 @@ test_data = [('sum', 1), ('dynamic', 2), ('EM', 3)]
 
 @pytest.mark.parametrize('routing_type, num_iterations', test_data)
 def test_function(routing_type, num_iterations):
-    x_cpu = Variable(torch.randn(64, 5, 8).double(), requires_grad=True)
+    x_cpu = Variable(torch.randn(7, 5, 8).double(), requires_grad=True)
     w_cpu = Variable(torch.randn(10, 16, 5, 8).double(), requires_grad=True)
     x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
     w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
@@ -44,10 +44,10 @@ def test_function(routing_type, num_iterations):
 def test_module(routing_type, num_iterations):
     module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16, routing_type=routing_type,
                            num_iterations=num_iterations)
-    x = Variable(torch.randn(128, 32, 8))
+    x = Variable(torch.randn(6, 32, 8))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
-    assert (y_cpu - y_cuda.cpu()).data.abs().max() < 1e-6
+    assert (y_cuda.cpu() - y_cpu).data.abs().max() < 1e-6
 
 
 @pytest.mark.parametrize('routing_type, num_iterations', test_data)
