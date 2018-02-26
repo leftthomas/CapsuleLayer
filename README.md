@@ -23,7 +23,7 @@ pip install fastrlock
 ```
 * pytest
 ```
-pip install pytest
+pip install -U pytest
 ```
 * CuPy
 ```
