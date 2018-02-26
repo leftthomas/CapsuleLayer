@@ -9,14 +9,17 @@ sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
-test_data = [(routing_type, num_iterations) for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations in
-             [1, 2, 3, 4]]
+test_data = [(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations) for batch_size
+             in [1, 2, 3, 4] for in_capsules in [1, 2, 5, 8] for out_capsules in [1, 2, 5, 8] for in_length in
+             [1, 2, 3, 4] for out_length in [1, 2, 3, 4] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations
+             in [1, 2, 3, 4]]
 
 
-@pytest.mark.parametrize('routing_type, num_iterations', test_data)
-def test_function(routing_type, num_iterations):
-    x_cpu = Variable(torch.randn(7, 5, 8).double(), requires_grad=True)
-    w_cpu = Variable(torch.randn(10, 16, 5, 8).double(), requires_grad=True)
+@pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations',
+                         test_data)
+def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations):
+    x_cpu = Variable(torch.randn(batch_size, in_capsules, in_length).double(), requires_grad=True)
+    w_cpu = Variable(torch.randn(out_capsules, out_length, in_capsules, in_length).double(), requires_grad=True)
     x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
     w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
     y_fast = CL.capsule_linear(x_gpu, w_gpu, routing_type=routing_type, num_iterations=num_iterations)
@@ -41,22 +44,24 @@ def test_function(routing_type, num_iterations):
     assert (gw_fast.cpu() - gw_ref).abs().max() < 1e-9
 
 
-@pytest.mark.parametrize('routing_type, num_iterations', test_data)
-def test_module(routing_type, num_iterations):
-    module = CapsuleLinear(in_capsules=32, out_capsules=10, in_length=8, out_length=16, routing_type=routing_type,
-                           num_iterations=num_iterations)
-    x = Variable(torch.randn(6, 32, 8))
+@pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations',
+                         test_data)
+def test_module(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations):
+    module = CapsuleLinear(in_capsules=in_capsules, out_capsules=out_capsules, in_length=in_length,
+                           out_length=out_length, routing_type=routing_type, num_iterations=num_iterations)
+    x = Variable(torch.randn(batch_size, in_capsules, in_length))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
     assert (y_cuda.cpu() - y_cpu).data.abs().max() < 1e-6
 
 
-@pytest.mark.parametrize('routing_type, num_iterations', test_data)
-def test_multigpu(routing_type, num_iterations):
-    a0 = Variable(torch.randn(6, 7, 8).cuda(0), requires_grad=True)
-    a1 = Variable(torch.randn(6, 7, 8).cuda(1), requires_grad=True)
-    w0 = Variable(torch.randn(5, 4, 7, 8).double().cuda(0), requires_grad=True)
-    w1 = Variable(torch.randn(5, 4, 7, 8).double().cuda(1), requires_grad=True)
+@pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations',
+                         test_data)
+def test_multigpu(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations):
+    a0 = Variable(torch.randn(batch_size, in_capsules, in_length).cuda(0), requires_grad=True)
+    a1 = Variable(torch.randn(batch_size, in_capsules, in_length).cuda(1), requires_grad=True)
+    w0 = Variable(torch.randn(out_capsules, out_length, in_capsules, in_length).double().cuda(0), requires_grad=True)
+    w1 = Variable(torch.randn(out_capsules, out_length, in_capsules, in_length).double().cuda(1), requires_grad=True)
     y0 = CL.capsule_linear(a0, w0, routing_type=routing_type, num_iterations=num_iterations)
     go = torch.randn(y0.size()).double().cuda()
     y0.backward(go)

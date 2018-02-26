@@ -9,15 +9,23 @@ sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleConv2d
 
-test_data = [(kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations) for kernel_size_h in
-             [1, 2, 3] for kernel_size_w in [1, 2, 3] for stride in [1, 2, 3] for padding in [0, 1, 2, 3] for
-             routing_type in ['sum', 'dynamic', 'EM'] for num_iterations in [1, 2, 3, 4]]
+test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length, out_length,
+              stride, padding, routing_type, num_iterations) for batch_size in [1, 2, 3, 4] for height in [5, 7, 8, 12]
+             for width in [5, 7, 8, 12] for in_length in [1, 2, 3, 4] for out_length in [1, 2, 3, 4] for kernel_size_h
+             in [1, 2, 3] for kernel_size_w in [1, 2, 3] for in_channels in
+             [1 * in_length, 2 * in_length, 3 * in_length, 4 * in_length] for out_channels in
+             [1 * out_length, 2 * out_length, 3 * out_length, 4 * out_length] for stride in [1, 2, 3] for padding in
+             [0, 1, 2, 3] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations in [1, 2, 3, 4]]
 
 
-@pytest.mark.parametrize('kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations', test_data)
-def test_function(kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations):
-    x_cpu = Variable(torch.randn(6, 3, 7, 11).double(), requires_grad=True)
-    w_cpu = Variable(torch.randn(5, 3, kernel_size_h, kernel_size_w, 1, 4).double(), requires_grad=True)
+@pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
+                         'in_length, out_length, stride, padding, routing_type, num_iterations', test_data)
+def test_function(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
+                  out_length, stride, padding, routing_type, num_iterations):
+    x_cpu = Variable(torch.randn(batch_size, in_channels, height, width).double(), requires_grad=True)
+    w_cpu = Variable(
+        torch.randn(out_channels // out_length, in_channels // in_length, kernel_size_h, kernel_size_w, in_length,
+                    out_length).double(), requires_grad=True)
     x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
     w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
     y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride=stride, padding=padding, routing_type=routing_type,
@@ -44,23 +52,31 @@ def test_function(kernel_size_h, kernel_size_w, stride, padding, routing_type, n
     assert (gw_fast.cpu() - gw_ref).data.abs().max() < 1e-9
 
 
-@pytest.mark.parametrize('kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations', test_data)
-def test_module(kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations):
-    module = CapsuleConv2d(in_channels=4, out_channels=8, kernel_size=(kernel_size_h, kernel_size_w), in_length=2,
-                           out_length=4, stride=stride, padding=padding, routing_type=routing_type,
-                           num_iterations=num_iterations)
-    x = Variable(torch.randn(5, 4, 6, 11))
+@pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
+                         'in_length, out_length, stride, padding, routing_type, num_iterations', test_data)
+def test_module(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
+                out_length, stride, padding, routing_type, num_iterations):
+    module = CapsuleConv2d(in_channels=in_channels, out_channels=out_channels,
+                           kernel_size=(kernel_size_h, kernel_size_w), in_length=in_length, out_length=out_length,
+                           stride=stride, padding=padding, routing_type=routing_type, num_iterations=num_iterations)
+    x = Variable(torch.randn(batch_size, in_channels, height, width))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
     assert (y_cuda.cpu() - y_cpu).data.abs().max() < 1e-6
 
 
-@pytest.mark.parametrize('kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations', test_data)
-def test_multigpu(kernel_size_h, kernel_size_w, stride, padding, routing_type, num_iterations):
-    a0 = Variable(torch.randn(6, 3, 12, 15).cuda(0), requires_grad=True)
-    a1 = Variable(torch.randn(6, 3, 12, 15).cuda(1), requires_grad=True)
-    w0 = Variable(torch.randn(4, 3, kernel_size_h, kernel_size_w, 1, 8).double().cuda(0), requires_grad=True)
-    w1 = Variable(torch.randn(4, 3, kernel_size_h, kernel_size_w, 1, 8).double().cuda(1), requires_grad=True)
+@pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
+                         'in_length, out_length, stride, padding, routing_type, num_iterations', test_data)
+def test_multigpu(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
+                  out_length, stride, padding, routing_type, num_iterations):
+    a0 = Variable(torch.randn(batch_size, in_channels, height, width).cuda(0), requires_grad=True)
+    a1 = Variable(torch.randn(batch_size, in_channels, height, width).cuda(1), requires_grad=True)
+    w0 = Variable(
+        torch.randn(out_channels // out_length, in_channels // in_length, kernel_size_h, kernel_size_w, in_length,
+                    out_length).double().cuda(0), requires_grad=True)
+    w1 = Variable(
+        torch.randn(out_channels // out_length, in_channels // in_length, kernel_size_h, kernel_size_w, in_length,
+                    out_length).double().cuda(1), requires_grad=True)
     y0 = CL.capsule_cov2d(a0, w0, stride=stride, padding=padding, routing_type=routing_type,
                           num_iterations=num_iterations)
     go = torch.randn(y0.size()).double().cuda()
