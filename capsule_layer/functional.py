@@ -3,10 +3,10 @@ from torch.autograd import Function
 from torch.nn.modules.utils import _pair
 
 from capsule_layer.capsule_cpu import capsule_conv2d_cpu, capsule_linear_cpu
-from capsule_layer.utils import load_kernel, Dtype, Stream, num_threads, get_thread_blocks, \
-    capsule_conv2d_sum_forward_kernel, capsule_conv2d_sum_input_backward_kernel, \
+from capsule_layer.kernels import capsule_conv2d_sum_forward_kernel, capsule_conv2d_sum_input_backward_kernel, \
     capsule_conv2d_sum_weight_backward_kernel, capsule_linear_sum_forward_kernel, \
     capsule_linear_sum_input_backward_kernel, capsule_linear_sum_weight_backward_kernel
+from capsule_layer.utils import load_kernel, Dtype, Stream, num_threads, get_thread_blocks
 
 
 class CapsuleConv2d(Function):
