@@ -9,21 +9,10 @@ so doesn't really work with quick prototyping. Another advantage of CuPy over C 
 are known at JIT-ing time, and compiled kernels potentially can be faster.
 
 ## Requirements
+* [Anaconda](https://www.anaconda.com/download/)
 * PyTorch
 ```
 conda install pytorch torchvision cuda90 -c pytorch
-```
-* setuptools
-```
-pip install setuptools
-```
-* fastrlock
-```
-pip install fastrlock
-```
-* pytest
-```
-pip install -U pytest
 ```
 * CuPy
 ```
