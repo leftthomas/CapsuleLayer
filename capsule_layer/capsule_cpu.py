@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 from torch.nn.modules.utils import _pair
 
 
@@ -62,7 +61,7 @@ def capsule_linear_cpu(input, weight, routing_type, num_iterations):
 
 
 def dynamic_route_conv2d(input, num_iterations):
-    logits = Variable(torch.zeros(*input.size())).type_as(input)
+    logits = torch.zeros_like(input)
     outputs = None
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-3)
@@ -74,7 +73,7 @@ def dynamic_route_conv2d(input, num_iterations):
 
 
 def dynamic_route_linear(input, num_iterations):
-    logits = Variable(torch.zeros(*input.size())).type_as(input)
+    logits = torch.zeros_like(input)
     outputs = None
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=2)
