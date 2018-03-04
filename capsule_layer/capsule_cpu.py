@@ -6,7 +6,7 @@ from torch.distributions import Normal
 from torch.nn.modules.utils import _pair
 
 
-def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterations):
+def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if input.is_cuda:
@@ -21,7 +21,6 @@ def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterati
     in_length = weight.size(4)
     stride = _pair(stride)
     padding = _pair(padding)
-    num_iterations = num_iterations
     N, C_in, H_in, W_in = input.size()
     H_out = 1 + (H_in + 2 * padding[0] - kernel_size[0]) // stride[0]
     W_out = 1 + (W_in + 2 * padding[1] - kernel_size[1]) // stride[1]
@@ -43,7 +42,7 @@ def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterati
     if routing_type == 'sum':
         out = priors.sum(dim=-3, keepdim=True).sum(dim=2, keepdim=True).squeeze(dim=-2).squeeze(dim=-2).squeeze(dim=2)
     elif routing_type == 'dynamic':
-        out = dynamic_route_conv2d(priors, num_iterations)
+        out = dynamic_route_conv2d(priors, **kwargs)
     else:
         # TODO
         raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type))
@@ -52,7 +51,7 @@ def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterati
     return out
 
 
-def capsule_linear_cpu(input, weight, routing_type, num_iterations):
+def capsule_linear_cpu(input, weight, routing_type, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if input.is_cuda:
@@ -68,14 +67,14 @@ def capsule_linear_cpu(input, weight, routing_type, num_iterations):
     if routing_type == 'sum':
         out = priors.sum(dim=2, keepdim=True).squeeze(dim=-2).transpose(0, 1)
     elif routing_type == 'dynamic':
-        out = dynamic_route_linear(priors, num_iterations)
+        out = dynamic_route_linear(priors, **kwargs)
     else:
         # TODO
         raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type))
     return out
 
 
-def dynamic_route_conv2d(input, num_iterations):
+def dynamic_route_conv2d(input, num_iterations=3):
     logits = torch.zeros_like(input)
     outputs = None
     for r in range(num_iterations):
@@ -87,7 +86,7 @@ def dynamic_route_conv2d(input, num_iterations):
     return outputs.squeeze(dim=-2).squeeze(dim=-2).squeeze(dim=2)
 
 
-def dynamic_route_linear(input, num_iterations):
+def dynamic_route_linear(input, num_iterations=3):
     logits = torch.zeros_like(input)
     outputs = None
     for r in range(num_iterations):
@@ -99,7 +98,7 @@ def dynamic_route_linear(input, num_iterations):
     return outputs.squeeze(dim=-2).transpose(0, 1)
 
 
-def em_route_conv2d(input, num_iterations, lambda_, a_, V):
+def em_route_conv2d(input, lambda_, a_, V, num_iterations=3):
     # routing coefficient
     batch_size = input.size(0)
     Cww = w * w * C
@@ -128,7 +127,7 @@ def em_route_conv2d(input, num_iterations, lambda_, a_, V):
     return a, mu
 
 
-def em_route_linear(input, num_iterations, lambda_, a_, V):
+def em_route_linear(input, lambda_, a_, V, num_iterations=3):
     # routing coefficient
     batch_size = input.size(0)
     Cww = w * w * C

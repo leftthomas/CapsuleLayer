@@ -25,7 +25,7 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
-        num_iterations (int, optional): number of routing iterations, it didn't work for routing_type -- sum
+        kwargs (dict, optional): other args, for example: num_iterations -- number of routing iterations
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
@@ -60,7 +60,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 routing_type='sum', num_iterations=3):
+                 routing_type='sum', **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('in_channels must be divisible by in_length')
@@ -79,12 +79,12 @@ class CapsuleConv2d(nn.Module):
         self.stride = stride
         self.padding = padding
         self.routing_type = routing_type
-        self.num_iterations = num_iterations
+        self.kwargs = kwargs
         self.weight = Parameter(
             torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, in_length, out_length))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -104,7 +104,7 @@ class CapsuleLinear(nn.Module):
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
          routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
-         num_iterations (int, optional): number of routing iterations, it didn't work for routing_type -- sum
+         kwargs (dict, optional): other args, for example: num_iterations -- number of routing iterations
 
      Shape:
          - Input: :math:`(N, in_capsules, in_length)`
@@ -117,23 +117,23 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
-         >>> m = CapsuleLinear(20, 30, 8, 16)
-         >>> input = Variable(torch.randn(128, 20, 8))
+         >>> m = CapsuleLinear(20, 30, 8, 16, routing_type = 'dynamic', num_iterations=1)
+         >>> input = Variable(torch.randn(5, 20, 8))
          >>> output = m(input)
          >>> print(output.size())
          torch.Size([128, 30, 16])
      """
 
-    def __init__(self, in_capsules, out_capsules, in_length, out_length, routing_type='sum', num_iterations=3):
+    def __init__(self, in_capsules, out_capsules, in_length, out_length, routing_type='sum', **kwargs):
         super(CapsuleLinear, self).__init__()
         self.in_capsules = in_capsules
         self.out_capsules = out_capsules
         self.routing_type = routing_type
-        self.num_iterations = num_iterations
+        self.kwargs = kwargs
         self.weight = Parameter(torch.randn(out_capsules, out_length, in_capsules, in_length))
 
     def forward(self, input):
-        return CL.capsule_linear(input, self.weight, self.routing_type, self.num_iterations)
+        return CL.capsule_linear(input, self.weight, self.routing_type, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \

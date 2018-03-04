@@ -11,12 +11,12 @@ from capsule_layer.utils import load_kernel, Dtype, Stream, num_threads, get_thr
 
 class CapsuleConv2d(Function):
 
-    def __init__(self, stride, padding, routing_type, num_iterations):
+    def __init__(self, stride, padding, routing_type, **kwargs):
         super(CapsuleConv2d, self).__init__()
         self.stride = _pair(stride)
         self.padding = _pair(padding)
         self.routing_type = routing_type
-        self.num_iterations = num_iterations
+        self.kwargs = kwargs
 
     def forward(self, input, weight):
         if input.dim() != 4:
@@ -116,10 +116,10 @@ class CapsuleConv2d(Function):
 
 class CapsuleLinear(Function):
 
-    def __init__(self, routing_type, num_iterations):
+    def __init__(self, routing_type, **kwargs):
         super(CapsuleLinear, self).__init__()
         self.routing_type = routing_type
-        self.num_iterations = num_iterations
+        self.kwargs = kwargs
 
     def forward(self, input, weight):
         if input.dim() != 3:
@@ -194,18 +194,18 @@ class CapsuleLinear(Function):
         return grad_input, grad_weight
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', num_iterations=3):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwargs):
     if input.size(1) != weight.size(1) * weight.size(4):
         raise ValueError("Expected input tensor has the same in_channels as weight, got {} in_channels in input tensor,"
                          " {} in_channels in weight.".format(input.size(1), weight.size(1) * weight.size(4)))
     if input.is_cuda:
-        out = CapsuleConv2d(stride, padding, routing_type, num_iterations)(input, weight)
+        out = CapsuleConv2d(stride, padding, routing_type, **kwargs)(input, weight)
     else:
-        out = capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterations)
+        out = capsule_conv2d_cpu(input, weight, stride, padding, routing_type, **kwargs)
     return out
 
 
-def capsule_linear(input, weight, routing_type='sum', num_iterations=3):
+def capsule_linear(input, weight, routing_type='sum', **kwargs):
     if input.size(1) != weight.size(2):
         raise ValueError("Expected input tensor has the same in_capsules as weight, got {} "
                          "in_capsules in input tensor, {} in_capsules in weight.".format(input.size(1), weight.size(1)))
@@ -213,7 +213,7 @@ def capsule_linear(input, weight, routing_type='sum', num_iterations=3):
         raise ValueError("Expected input tensor has the same in_length as weight, got in_length {} "
                          "in input tensor, in_length {} in weight.".format(input.size(-1), weight.size(-1)))
     if input.is_cuda:
-        out = CapsuleLinear(routing_type, num_iterations)(input, weight)
+        out = CapsuleLinear(routing_type, **kwargs)(input, weight)
     else:
-        out = capsule_linear_cpu(input, weight, routing_type, num_iterations)
+        out = capsule_linear_cpu(input, weight, routing_type, **kwargs)
     return out
