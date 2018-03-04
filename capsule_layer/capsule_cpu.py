@@ -6,8 +6,14 @@ from torch.nn.modules.utils import _pair
 def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterations):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
-    if input.is_cuda or weight.is_cuda:
-        raise ValueError('Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.')
+    if input.is_cuda:
+        raise ValueError('Expected input tensor should be in cpu, got gpu tensor instead.')
+    if weight.is_cuda:
+        raise ValueError('Expected weight tensor should be in cpu, got gpu tensor instead.')
+    if not input.is_contiguous():
+        raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
+    if not weight.is_contiguous():
+        raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
     kernel_size = (weight.size(2), weight.size(3))
     in_length = weight.size(4)
     stride = _pair(stride)
@@ -46,8 +52,14 @@ def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, num_iterati
 def capsule_linear_cpu(input, weight, routing_type, num_iterations):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
-    if input.is_cuda or weight.is_cuda:
-        raise ValueError('Expected input tensor and weight tensor should be in cpu, got gpu tensor instead.')
+    if input.is_cuda:
+        raise ValueError('Expected input tensor should be in cpu, got gpu tensor instead.')
+    if weight.is_cuda:
+        raise ValueError('Expected weight tensor should be in cpu, got gpu tensor instead.')
+    if not input.is_contiguous():
+        raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
+    if not weight.is_contiguous():
+        raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
     weight = weight.transpose(1, 2)
     priors = (weight[:, None, :, :, :] @ input[None, :, :, :, None]).squeeze(dim=-1)
     if routing_type == 'sum':

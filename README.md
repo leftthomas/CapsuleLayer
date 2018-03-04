@@ -82,8 +82,8 @@ y = module(x)
 ## Note
 The dynamic and matrix routing algorithms isn't implemented now, the cpu version could be speed up and optimized.
 
-If you want to learn how to use CuPy to write CUDA Kernel Function and invoke it by PyTorch, please check 
-[CuPyLearn](https://github.com/leftthomas/CuPyLearn) to learn more.
+If you want to learn how to use CuPy to write CUDA Kernel Function and invoke it by PyTorch, please reference 
+[CuPyLearn](https://github.com/leftthomas/CuPyLearn).
 
 ## Contribution
 Any contributions to Capsule Layer are welcome!

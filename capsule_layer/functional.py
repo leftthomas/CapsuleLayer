@@ -25,6 +25,10 @@ class CapsuleConv2d(Function):
             raise ValueError('Expected input tensor should be in cuda, got cpu tensor instead.')
         if not weight.is_cuda:
             raise ValueError('Expected weight tensor should be in cuda, got cpu tensor instead.')
+        if not input.is_contiguous():
+            raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
+        if not weight.is_contiguous():
+            raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
 
         kernel_size = (weight.size(2), weight.size(3))
         in_length = weight.size(4)
@@ -124,6 +128,10 @@ class CapsuleLinear(Function):
             raise ValueError('Expected input tensor should be in cuda, got cpu tensor instead.')
         if not weight.is_cuda:
             raise ValueError('Expected weight tensor should be in cuda, got cpu tensor instead.')
+        if not input.is_contiguous():
+            raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
+        if not weight.is_contiguous():
+            raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
 
         batch_size, in_capsules, in_length = input.size()
         out_capsules, out_length = weight.size(0), weight.size(1)

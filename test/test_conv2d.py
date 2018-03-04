@@ -1,21 +1,19 @@
-import sys
 from functools import partial
 
 import pytest
 import torch
+from pytest import approx
 from torch.autograd import Variable, gradcheck
 
-sys.path.append("..")
 import capsule_layer as CL
 from capsule_layer import CapsuleConv2d
 
 test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length, out_length,
-              stride, padding, routing_type, num_iterations) for batch_size in [1, 2, 3] for height in [5, 8, 12]
-             for width in [5, 8, 12] for in_length in [1, 2, 3] for out_length in [1, 2, 3] for kernel_size_h
-             in [1, 2, 3] for kernel_size_w in [1, 2, 3] for in_channels in
-             [1 * in_length, 2 * in_length, 3 * in_length] for out_channels in
-             [1 * out_length, 2 * out_length, 3 * out_length] for stride in [1, 2, 3] for padding in
-             [0, 1, 2] for routing_type in ['sum', 'dynamic', 'EM'] for num_iterations in [1, 2, 3, 4]]
+              stride, padding, routing_type, num_iterations) for batch_size in [1, 3] for height in [5, 12] for width in
+             [5, 12] for in_length in [1, 3] for out_length in [1, 3] for kernel_size_h in [1, 3] for kernel_size_w in
+             [1, 3] for in_channels in [1 * in_length, 3 * in_length] for out_channels in
+             [1 * out_length, 3 * out_length] for stride in [1, 2] for padding in [0, 1] for routing_type in
+             ['sum', 'dynamic', 'EM'] for num_iterations in [1, 3]]
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
@@ -32,7 +30,7 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
                               num_iterations=num_iterations)
     y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride=stride, padding=padding, routing_type=routing_type,
                              num_iterations=num_iterations)
-    assert (y_fast.cpu() - y_ref).data.abs().max() < 1e-9
+    assert y_fast.cpu().data.numpy() == approx(y_ref.data.numpy())
 
     go_cpu = torch.randn(y_ref.size()).double()
     go_gpu = go_cpu.cuda()
@@ -48,8 +46,8 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
     assert gradcheck(partial(CL.capsule_cov2d, stride=stride, padding=padding, routing_type=routing_type,
                              num_iterations=num_iterations), (x_cpu, w_cpu))
 
-    assert (gx_fast.cpu() - gx_ref).data.abs().max() < 1e-9
-    assert (gw_fast.cpu() - gw_ref).data.abs().max() < 1e-9
+    assert gx_fast.cpu().numpy() == approx(gx_ref.numpy())
+    assert gw_fast.cpu().numpy() == approx(gw_ref.numpy())
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
@@ -62,7 +60,7 @@ def test_module(batch_size, height, width, in_channels, out_channels, kernel_siz
     x = Variable(torch.randn(batch_size, in_channels, height, width))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
-    assert (y_cuda.cpu() - y_cpu).data.abs().max() < 1e-6
+    assert y_cuda.cpu().data.numpy() == approx(y_cpu.data.numpy())
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
