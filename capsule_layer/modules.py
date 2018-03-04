@@ -25,7 +25,9 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
-        kwargs (dict, optional): other args, for example: num_iterations -- number of routing iterations
+        kwargs (dict, optional): other args:
+          - num_iterations (int, optional): number of routing iterations -- default value is 3, it works for dynamic
+           and EM routing algorithms
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
@@ -104,7 +106,9 @@ class CapsuleLinear(nn.Module):
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
          routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
-         kwargs (dict, optional): other args, for example: num_iterations -- number of routing iterations
+         kwargs (dict, optional): other args:
+           - num_iterations (int, optional): number of routing iterations -- default value is 3, it works for dynamic
+            and EM routing algorithms
 
      Shape:
          - Input: :math:`(N, in_capsules, in_length)`
@@ -121,7 +125,7 @@ class CapsuleLinear(nn.Module):
          >>> input = Variable(torch.randn(5, 20, 8))
          >>> output = m(input)
          >>> print(output.size())
-         torch.Size([128, 30, 16])
+         torch.Size([5, 30, 16])
      """
 
     def __init__(self, in_capsules, out_capsules, in_length, out_length, routing_type='sum', **kwargs):
