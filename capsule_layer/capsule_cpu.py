@@ -1,5 +1,8 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
+from torch.distributions import Normal
 from torch.nn.modules.utils import _pair
 
 
@@ -94,6 +97,64 @@ def dynamic_route_linear(input, num_iterations):
             delta_logits = (input * outputs).sum(dim=-1, keepdim=True)
             logits = logits + delta_logits
     return outputs.squeeze(dim=-2).transpose(0, 1)
+
+
+def em_route_conv2d(input, num_iterations, lambda_, a_, V):
+    # routing coefficient
+    batch_size = input.size(0)
+    Cww = w * w * C
+    Bkk = K * K * B
+    R = Variable(torch.ones([batch_size, Bkk, Cww])) / Cww
+    beta_v = nn.Parameter(torch.randn(1, Cww, 1))
+    beta_a = nn.Parameter(torch.randn(1, Cww))
+    for r in range(num_iterations):
+        # M-step
+        R = (R * a_)[..., None]
+        sum_R = R.sum(dim=1)
+        mu = ((R * V).sum(dim=1) / sum_R)[:, None, :, :]
+        sigma_square = (R * (V - mu) ** 2).sum(1) / sum_R
+
+        # E-step
+        if r != num_iterations - 1:
+            mu, sigma_square, V_, a__ = mu.data, sigma_square.data, V.data, a_.data
+            normal = Normal(mu, sigma_square[:, None, :, :] ** (1 / 2))
+            p = torch.exp(normal.log_prob(V_))
+            ap = a__ * p.sum(-1)
+            R = Variable(ap / ap.sum(dim=-1)[..., None])
+        else:
+            const = (beta_v.expand_as(sigma_square) + torch.log(sigma_square)) * sum_R
+            a = torch.sigmoid(lambda_ * (beta_a.repeat(batch_size, 1) - const.sum(dim=2)))
+
+    return a, mu
+
+
+def em_route_linear(input, num_iterations, lambda_, a_, V):
+    # routing coefficient
+    batch_size = input.size(0)
+    Cww = w * w * C
+    Bkk = K * K * B
+    R = Variable(torch.ones([batch_size, Bkk, Cww])) / Cww
+    beta_v = nn.Parameter(torch.randn(1, Cww, 1))
+    beta_a = nn.Parameter(torch.randn(1, Cww))
+    for r in range(num_iterations):
+        # M-step
+        R = (R * a_)[..., None]
+        sum_R = R.sum(dim=1)
+        mu = ((R * V).sum(dim=1) / sum_R)[:, None, :, :]
+        sigma_square = (R * (V - mu) ** 2).sum(1) / sum_R
+
+        # E-step
+        if r != num_iterations - 1:
+            mu, sigma_square, V_, a__ = mu.data, sigma_square.data, V.data, a_.data
+            normal = Normal(mu, sigma_square[:, None, :, :] ** (1 / 2))
+            p = torch.exp(normal.log_prob(V_))
+            ap = a__ * p.sum(-1)
+            R = Variable(ap / ap.sum(dim=-1)[..., None])
+        else:
+            const = (beta_v.expand_as(sigma_square) + torch.log(sigma_square)) * sum_R
+            a = torch.sigmoid(lambda_ * (beta_a.repeat(batch_size, 1) - const.sum(dim=2)))
+
+    return a, mu
 
 
 def squash(tensor, dim=-1):
