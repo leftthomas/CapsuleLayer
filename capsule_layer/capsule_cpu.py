@@ -81,8 +81,7 @@ def dynamic_route_conv2d(input, num_iterations=3):
         probs = F.softmax(logits, dim=-3)
         outputs = squash((probs * input).sum(dim=-3, keepdim=True).sum(dim=2, keepdim=True))
         if r != num_iterations - 1:
-            delta_logits = (input * outputs).sum(dim=-1, keepdim=True)
-            logits = logits + delta_logits
+            logits = (input * outputs).sum(dim=-1, keepdim=True)
     return outputs.squeeze(dim=-2).squeeze(dim=-2).squeeze(dim=2)
 
 
@@ -93,8 +92,7 @@ def dynamic_route_linear(input, num_iterations=3):
         probs = F.softmax(logits, dim=2)
         outputs = squash((probs * input).sum(dim=2, keepdim=True))
         if r != num_iterations - 1:
-            delta_logits = (input * outputs).sum(dim=-1, keepdim=True)
-            logits = logits + delta_logits
+            logits = (input * outputs).sum(dim=-1, keepdim=True)
     return outputs.squeeze(dim=-2).transpose(0, 1)
 
 

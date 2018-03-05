@@ -121,7 +121,7 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
-         >>> m = CapsuleLinear(20, 30, 8, 16, routing_type = 'dynamic', num_iterations=1)
+         >>> m = CapsuleLinear(20, 30, 8, 16, routing_type = 'dynamic', num_iterations=5)
          >>> input = Variable(torch.randn(5, 20, 8))
          >>> output = m(input)
          >>> print(output.size())
