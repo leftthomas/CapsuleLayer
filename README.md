@@ -1,22 +1,11 @@
 # Capsule Layer
-CuPy fused PyTorch Capsule Layer, based on Hao Ren's paper [Convolutional Capsule Network for Image Classification](xxx).
-
-The purpose of this package is to contain CUDA ops written in Python with CuPy, which is not a PyTorch dependency.
-
-An alternative to CuPy would be <https://github.com/pytorch/extension-ffi>,
-but it requires a lot of wrapping code like <https://github.com/sniklaus/pytorch-extension>,
-so doesn't really work with quick prototyping. Another advantage of CuPy over C code is that dimensions of each op
-are known at JIT-ing time, and compiled kernels potentially can be faster.
+PyTorch Capsule Layer, based on Hao Ren's paper [Convolutional Capsule Network for Image Classification](xxx).
 
 ## Requirements
 * [Anaconda](https://www.anaconda.com/download/)
 * PyTorch
 ```
 conda install pytorch torchvision cuda90 -c pytorch
-```
-* CuPy
-```
-pip install cupy
 ```
 
 ## Installation
@@ -35,8 +24,7 @@ w = Variable(torch.randn(4,1,3,3,1,4))
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['sum', 'dynamic', 'means']
-y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='sum')
+y = capsule_cov2d(x, w, stride=1, padding=1)
 ```
 or with modules interface:
 ```python
@@ -44,8 +32,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
 x = Variable(torch.randn(4,1,5,7))
-# routing_type options: ['sum', 'dynamic', 'means']
-module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, in_length=1, out_length=4, stride=1, padding=1, routing_type='sum')
+module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, in_length=1, out_length=4, stride=1, padding=1)
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()
@@ -78,10 +65,6 @@ if torch.cuda.is_available():
     module.cuda()
 y = module(x)
 ```
-
-## Note
-If you want to learn how to use CuPy to write CUDA Kernel Function and invoke it by PyTorch, please reference 
-[CuPyLearn](https://github.com/leftthomas/CuPyLearn).
 
 ## Contribution
 Any contributions to Capsule Layer are welcome!

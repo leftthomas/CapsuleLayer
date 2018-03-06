@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 VERSION = '0.0.1'
 
-long_description = "CuPy fused PyTorch Capsule Layer, include conv2d and linear layers."
+long_description = "PyTorch Capsule Layer, include conv2d and linear layers."
 
 setup_info = dict(
     # Metadata
@@ -11,7 +11,7 @@ setup_info = dict(
     author='Hao Ren',
     author_email='leftthomas@qq.com',
     url='https://github.com/leftthomas/CapsuleLayer',
-    description='CuPy fused PyTorch Capsule Layer',
+    description='PyTorch Capsule Layer',
     long_description=long_description,
     license='MIT',
 
@@ -21,4 +21,4 @@ setup_info = dict(
     zip_safe=True
 )
 
-setup(**setup_info, install_requires=['torch', 'cupy'])
+setup(**setup_info, install_requires=['torch'])
