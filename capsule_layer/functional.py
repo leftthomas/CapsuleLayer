@@ -3,7 +3,6 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torch.nn.modules.utils import _pair
 
-from capsule_layer.capsule_cpu import capsule_conv2d_cpu
 from capsule_layer.kernels import capsule_conv2d_sum_forward_kernel, capsule_conv2d_sum_input_backward_kernel, \
     capsule_conv2d_sum_weight_backward_kernel
 from capsule_layer.utils import load_kernel, Dtype, Stream, num_threads, get_thread_blocks
@@ -19,17 +18,6 @@ class CapsuleConv2d(Function):
         self.kwargs = kwargs
 
     def forward(self, input, weight):
-        if input.dim() != 4:
-            raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
-        if not input.is_cuda:
-            raise ValueError('Expected input tensor should be in cuda, got cpu tensor instead.')
-        if not weight.is_cuda:
-            raise ValueError('Expected weight tensor should be in cuda, got cpu tensor instead.')
-        if not input.is_contiguous():
-            raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
-        if not weight.is_contiguous():
-            raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
-
         kernel_size = (weight.size(2), weight.size(3))
         in_length = weight.size(4)
         out_length = weight.size(-1)
@@ -116,10 +104,24 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwar
     if input.size(1) != weight.size(1) * weight.size(4):
         raise ValueError('Expected input tensor has the same in_channels as weight, got {} in_channels in input tensor,'
                          ' {} in_channels in weight.'.format(input.size(1), weight.size(1) * weight.size(4)))
-    if input.is_cuda:
+    if input.dim() != 4:
+        raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
+    if input.data.type() != weight.data.type():
+        raise ValueError('Expected input and weight tensor should be the same type, got different type instead.')
+    if not input.is_contiguous():
+        raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
+    if not weight.is_contiguous():
+        raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
+    if routing_type == 'sum':
+        out = None
+    elif routing_type == 'dynamic':
+        # TODO
+        out = CapsuleConv2d(stride, padding, routing_type, **kwargs)(input, weight)
+    elif routing_type == 'means':
+        # TODO
         out = CapsuleConv2d(stride, padding, routing_type, **kwargs)(input, weight)
     else:
-        out = capsule_conv2d_cpu(input, weight, stride, padding, routing_type, **kwargs)
+        raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
 
 
