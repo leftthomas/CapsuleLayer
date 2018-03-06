@@ -96,6 +96,28 @@ def dynamic_route_linear(input, num_iterations=3):
     return outputs.squeeze(dim=-2).transpose(0, 1)
 
 
+def means_route_conv2d(input, num_iterations=3):
+    outputs = input.mean(dim=-2, keepdim=True).mean(dim=-3, keepdim=True)
+    for r in range(num_iterations):
+        norm = outputs.norm(p=2, dim=-1, keepdim=True)
+        outputs = outputs / norm
+        logits = (input * outputs).sum(dim=-1, keepdim=True)
+        probs = F.softmax(logits, dim=-2)
+        outputs = (probs * input).sum(dim=-2, keepdim=True).sum(dim=-3, keepdim=True)
+    return squash(outputs).squeeze(dim=-2).squeeze(dim=-2).transpose(0, 1)
+
+
+def means_route_linear(input, num_iterations=3):
+    outputs = input.mean(dim=2, keepdim=True)
+    for r in range(num_iterations):
+        norm = outputs.norm(p=2, dim=-1, keepdim=True)
+        outputs = outputs / norm
+        logits = (input * outputs).sum(dim=-1, keepdim=True)
+        probs = F.softmax(logits, dim=2)
+        outputs = (probs * input).sum(dim=2, keepdim=True)
+    return squash(outputs).squeeze(dim=-2).transpose(0, 1)
+
+
 def em_route_conv2d(input, lambda_, a_, V, num_iterations=3):
     # routing coefficient
     batch_size = input.size(0)
