@@ -174,8 +174,7 @@ def means_route_linear(input, num_iterations=3):
     else:
         output = input.mean(dim=-2, keepdim=True)
         for r in range(num_iterations):
-            norm = output.norm(p=2, dim=-1, keepdim=True)
-            output = output / norm
+            output = F.normalize(output, p=2, dim=-1)
             logits = (input * output).sum(dim=-1, keepdim=True)
             probs = F.softmax(logits, dim=-2)
             output = (probs * input).sum(dim=-2, keepdim=True)
