@@ -53,7 +53,6 @@ class CapsuleConv2d(Function):
                   grid=(get_thread_blocks(n), 1, 1),
                   stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
             else:
-                # TODO
                 raise NotImplementedError(
                     '{} routing algorithm is not implemented on gpu.'.format(self.routing_type))
 
@@ -107,7 +106,6 @@ class CapsuleConv2d(Function):
                       grid=(get_thread_blocks(n), 1, 1),
                       stream=Stream(ptr=torch.cuda.current_stream().cuda_stream))
             else:
-                # TODO
                 raise NotImplementedError(
                     '{} routing algorithm is not implemented on gpu.'.format(self.routing_type))
 
@@ -116,8 +114,8 @@ class CapsuleConv2d(Function):
 
 def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwargs):
     if input.size(1) != weight.size(1) * weight.size(4):
-        raise ValueError("Expected input tensor has the same in_channels as weight, got {} in_channels in input tensor,"
-                         " {} in_channels in weight.".format(input.size(1), weight.size(1) * weight.size(4)))
+        raise ValueError('Expected input tensor has the same in_channels as weight, got {} in_channels in input tensor,'
+                         ' {} in_channels in weight.'.format(input.size(1), weight.size(1) * weight.size(4)))
     if input.is_cuda:
         out = CapsuleConv2d(stride, padding, routing_type, **kwargs)(input, weight)
     else:
@@ -127,14 +125,14 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwar
 
 def capsule_linear(input, weight, routing_type='sum', **kwargs):
     if input.size(1) != weight.size(1):
-        raise ValueError("Expected input tensor has the same in_capsules as weight, got {} "
-                         "in_capsules in input tensor, {} in_capsules in weight.".format(input.size(1), weight.size(1)))
+        raise ValueError('Expected input tensor has the same in_capsules as weight, got {} '
+                         'in_capsules in input tensor, {} in_capsules in weight.'.format(input.size(1), weight.size(1)))
     if input.size(-1) != weight.size(-1):
-        raise ValueError("Expected input tensor has the same in_length as weight, got in_length {} "
-                         "in input tensor, in_length {} in weight.".format(input.size(-1), weight.size(-1)))
+        raise ValueError('Expected input tensor has the same in_length as weight, got in_length {} '
+                         'in input tensor, in_length {} in weight.'.format(input.size(-1), weight.size(-1)))
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
-    if input.type() != weight.type():
+    if input.data.type() != weight.data.type():
         raise ValueError('Expected input and weight tensor should be the same type, got different type instead.')
     if not input.is_contiguous():
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
@@ -154,24 +152,32 @@ def capsule_linear(input, weight, routing_type='sum', **kwargs):
 
 
 def dynamic_route_linear(input, num_iterations=3):
-    logits = torch.zeros_like(input)
-    for r in range(num_iterations):
-        probs = F.softmax(logits, dim=-2)
-        output = squash((probs * input).sum(dim=-2, keepdim=True))
-        if r != num_iterations - 1:
-            logits = (input * output).sum(dim=-1, keepdim=True)
-    return output.squeeze(dim=-2)
+    if num_iterations < 1:
+        raise ValueError('Expected num_iterations should greater than 1 or '
+                         'equal to 1, got num_iterations {} instead.'.format(num_iterations))
+    else:
+        logits = torch.zeros_like(input)
+        for r in range(num_iterations):
+            probs = F.softmax(logits, dim=-2)
+            output = squash((probs * input).sum(dim=-2, keepdim=True))
+            if r != num_iterations - 1:
+                logits = (input * output).sum(dim=-1, keepdim=True)
+        return output.squeeze(dim=-2)
 
 
 def means_route_linear(input, num_iterations=3):
-    output = input.mean(dim=-2, keepdim=True)
-    for r in range(num_iterations):
-        norm = output.norm(p=2, dim=-1, keepdim=True)
-        output = output / norm
-        logits = (input * output).sum(dim=-1, keepdim=True)
-        probs = F.softmax(logits, dim=-2)
-        output = (probs * input).sum(dim=-2, keepdim=True)
-    return squash(output).squeeze(dim=-2)
+    if num_iterations < 0:
+        raise ValueError('Expected num_iterations should greater than 0 or '
+                         'equal to 0, got num_iterations {} instead.'.format(num_iterations))
+    else:
+        output = input.mean(dim=-2, keepdim=True)
+        for r in range(num_iterations):
+            norm = output.norm(p=2, dim=-1, keepdim=True)
+            output = output / norm
+            logits = (input * output).sum(dim=-1, keepdim=True)
+            probs = F.softmax(logits, dim=-2)
+            output = (probs * input).sum(dim=-2, keepdim=True)
+        return squash(output).squeeze(dim=-2)
 
 
 def squash(input, dim=-1):
