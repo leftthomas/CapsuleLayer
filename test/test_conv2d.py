@@ -13,7 +13,7 @@ test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_
              [5, 12] for in_length in [1, 3] for out_length in [1, 3] for kernel_size_h in [1, 3] for kernel_size_w in
              [1, 3] for in_channels in [1 * in_length, 3 * in_length] for out_channels in
              [1 * out_length, 3 * out_length] for stride in [1, 2] for padding in [0, 1] for routing_type in
-             ['sum', 'dynamic', 'EM'] for num_iterations in [1, 3]]
+             ['sum', 'dynamic', 'means'] for num_iterations in [1, 3]]
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '

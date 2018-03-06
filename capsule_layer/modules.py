@@ -24,10 +24,10 @@ class CapsuleConv2d(nn.Module):
         out_length (int): length of each output sample's each capsule
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
-        routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
+        routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'means']
         kwargs (dict, optional): other args:
           - num_iterations (int, optional): number of routing iterations -- default value is 3, it works for dynamic
-           and EM routing algorithms
+           and means routing algorithms
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
@@ -105,10 +105,10 @@ class CapsuleLinear(nn.Module):
          out_capsules (int): number of each output sample's capsules
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
-         routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'EM']
+         routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'means']
          kwargs (dict, optional): other args:
            - num_iterations (int, optional): number of routing iterations -- default value is 3, it works for dynamic
-            and EM routing algorithms
+            and means routing algorithms
 
      Shape:
          - Input: :math:`(N, in_capsules, in_length)`
@@ -116,7 +116,7 @@ class CapsuleLinear(nn.Module):
 
      Attributes:
          weight (Tensor): the learnable weights of the module of shape
-             (out_capsules, out_length, in_capsules, in_length)
+             (out_capsules, in_capsules, out_length, in_length)
 
      Examples::
          >>> from capsule_layer import CapsuleLinear
@@ -134,7 +134,7 @@ class CapsuleLinear(nn.Module):
         self.out_capsules = out_capsules
         self.routing_type = routing_type
         self.kwargs = kwargs
-        self.weight = Parameter(torch.randn(out_capsules, out_length, in_capsules, in_length))
+        self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.routing_type, **self.kwargs)

@@ -48,29 +48,6 @@ def capsule_conv2d_cpu(input, weight, stride, padding, routing_type, **kwargs):
     return out
 
 
-def capsule_linear_cpu(input, weight, routing_type, **kwargs):
-    if input.dim() != 3:
-        raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
-    if input.is_cuda:
-        raise ValueError('Expected input tensor should be in cpu, got gpu tensor instead.')
-    if weight.is_cuda:
-        raise ValueError('Expected weight tensor should be in cpu, got gpu tensor instead.')
-    if not input.is_contiguous():
-        raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
-    if not weight.is_contiguous():
-        raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
-    weight = weight.transpose(1, 2)
-    priors = (weight[:, None, :, :, :] @ input[None, :, :, :, None]).squeeze(dim=-1)
-    if routing_type == 'sum':
-        out = priors.sum(dim=2, keepdim=True).squeeze(dim=-2).transpose(0, 1)
-    elif routing_type == 'dynamic':
-        out = dynamic_route_linear(priors, **kwargs)
-    else:
-        # TODO
-        raise NotImplementedError('{} routing algorithm is not implemented on cpu.'.format(routing_type))
-    return out
-
-
 def dynamic_route_conv2d(input, num_iterations=3):
     logits = torch.zeros_like(input)
     outputs = None
@@ -82,17 +59,6 @@ def dynamic_route_conv2d(input, num_iterations=3):
     return outputs.squeeze(dim=-2).squeeze(dim=-2).squeeze(dim=2)
 
 
-def dynamic_route_linear(input, num_iterations=3):
-    logits = torch.zeros_like(input)
-    outputs = None
-    for r in range(num_iterations):
-        probs = F.softmax(logits, dim=2)
-        outputs = squash((probs * input).sum(dim=2, keepdim=True))
-        if r != num_iterations - 1:
-            logits = (input * outputs).sum(dim=-1, keepdim=True)
-    return outputs.squeeze(dim=-2).transpose(0, 1)
-
-
 def means_route_conv2d(input, num_iterations=3):
     outputs = input.mean(dim=-2, keepdim=True).mean(dim=-3, keepdim=True)
     for r in range(num_iterations):
@@ -102,20 +68,3 @@ def means_route_conv2d(input, num_iterations=3):
         probs = F.softmax(logits, dim=-2)
         outputs = (probs * input).sum(dim=-2, keepdim=True).sum(dim=-3, keepdim=True)
     return squash(outputs).squeeze(dim=-2).squeeze(dim=-2).transpose(0, 1)
-
-
-def means_route_linear(input, num_iterations=3):
-    outputs = input.mean(dim=2, keepdim=True)
-    for r in range(num_iterations):
-        norm = outputs.norm(p=2, dim=-1, keepdim=True)
-        outputs = outputs / norm
-        logits = (input * outputs).sum(dim=-1, keepdim=True)
-        probs = F.softmax(logits, dim=2)
-        outputs = (probs * input).sum(dim=2, keepdim=True)
-    return squash(outputs).squeeze(dim=-2).transpose(0, 1)
-
-
-def squash(tensor, dim=-1):
-    norm = tensor.norm(p=2, dim=dim, keepdim=True)
-    scale = norm / (1 + norm ** 2)
-    return scale * tensor

@@ -35,7 +35,7 @@ w = Variable(torch.randn(4,1,3,3,1,4))
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['sum', 'dynamic', 'EM']
+# routing_type options: ['sum', 'dynamic', 'means']
 y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='sum')
 ```
 or with modules interface:
@@ -44,7 +44,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
 x = Variable(torch.randn(4,1,5,7))
-# routing_type options: ['sum', 'dynamic', 'EM']
+# routing_type options: ['sum', 'dynamic', 'means']
 module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, in_length=1, out_length=4, stride=1, padding=1, routing_type='sum')
 if torch.cuda.is_available():
     x = x.cuda()
@@ -58,11 +58,11 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import capsule_linear
 x = Variable(torch.randn(8,128,8))
-w = Variable(torch.randn(10,16,128,8)) 
+w = Variable(torch.randn(10,128,16,8)) 
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['sum', 'dynamic', 'EM']
+# routing_type options: ['sum', 'dynamic', 'means']
 y = capsule_linear(x, w, routing_type='sum')
 ```
 or with modules interface:
@@ -71,7 +71,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
 x = Variable(torch.randn(8,128,8))
-# routing_type options: ['sum', 'dynamic', 'EM']
+# routing_type options: ['sum', 'dynamic', 'means']
 module = CapsuleLinear(in_capsules=128, out_capsules=10, in_length=8, out_length=16, routing_type='dynamic', num_iterations=3)
 if torch.cuda.is_available():
     x = x.cuda()
@@ -80,8 +80,6 @@ y = module(x)
 ```
 
 ## Note
-The dynamic and matrix routing algorithms isn't implemented now, the cpu version could be speed up and optimized.
-
 If you want to learn how to use CuPy to write CUDA Kernel Function and invoke it by PyTorch, please reference 
 [CuPyLearn](https://github.com/leftthomas/CuPyLearn).
 
