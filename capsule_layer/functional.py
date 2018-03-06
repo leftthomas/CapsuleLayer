@@ -100,10 +100,7 @@ class CapsuleConv2d(Function):
         return grad_input, grad_weight
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwargs):
-    if input.size(1) != weight.size(1) * weight.size(4):
-        raise ValueError('Expected input tensor has the same in_channels as weight, got {} in_channels in input tensor,'
-                         ' {} in_channels in weight.'.format(input.size(1), weight.size(1) * weight.size(4)))
+def capsule_cov2d(input, weight, out_length, stride=1, padding=0, routing_type='sum', **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if input.data.type() != weight.data.type():
@@ -112,8 +109,13 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwar
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
     if not weight.is_contiguous():
         raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
+    if (weight.size(1) != 1) and (input.size(1) / weight.size(1) != weight.size(0) / out_length):
+        raise ValueError('Expected input and output tensor should be the same group, got different group instead.')
     if routing_type == 'sum':
-        out = None
+        if weight.size(1) == 1:
+            out = F.conv2d(input, weight, stride=stride, padding=padding)
+        else:
+            out = F.conv2d(input, weight, stride=stride, padding=padding, groups=weight.size(0) / out_length)
     elif routing_type == 'dynamic':
         # TODO
         out = CapsuleConv2d(stride, padding, routing_type, **kwargs)(input, weight)
@@ -126,12 +128,6 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwar
 
 
 def capsule_linear(input, weight, routing_type='sum', **kwargs):
-    if input.size(1) != weight.size(1):
-        raise ValueError('Expected input tensor has the same in_capsules as weight, got {} '
-                         'in_capsules in input tensor, {} in_capsules in weight.'.format(input.size(1), weight.size(1)))
-    if input.size(-1) != weight.size(-1):
-        raise ValueError('Expected input tensor has the same in_length as weight, got in_length {} '
-                         'in input tensor, in_length {} in weight.'.format(input.size(-1), weight.size(-1)))
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if input.data.type() != weight.data.type():
@@ -140,6 +136,12 @@ def capsule_linear(input, weight, routing_type='sum', **kwargs):
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
     if not weight.is_contiguous():
         raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
+    if input.size(1) != weight.size(1):
+        raise ValueError('Expected input tensor has the same in_capsules as weight, got {} '
+                         'in_capsules in input tensor, {} in_capsules in weight.'.format(input.size(1), weight.size(1)))
+    if input.size(-1) != weight.size(-1):
+        raise ValueError('Expected input tensor has the same in_length as weight, got in_length {} '
+                         'in input tensor, in_length {} in weight.'.format(input.size(-1), weight.size(-1)))
     # [batch_size, out_capsules, in_capsules, out_length]
     priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     if routing_type == 'sum':

@@ -37,8 +37,7 @@ class CapsuleConv2d(nn.Module):
 
     Attributes:
         weight (Tensor): the learnable weights of the module of shape
-                         (out_channels // out_length, in_channels // in_length, kernel_size[0], kernel_size[1],
-                        in_length, out_length)
+                         (out_channels, in_channels // in_length, kernel_size[0], kernel_size[1])
 
     ------------------------------------------------------------------------------------------------
     !!!!!!!!!     PAY ATTENTION: MAKE SURE CapsuleConv2d's OUTPUT CAPSULE's LENGTH EQUALS
@@ -65,10 +64,11 @@ class CapsuleConv2d(nn.Module):
                  routing_type='sum', **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
-            raise ValueError('in_channels must be divisible by in_length')
+            raise ValueError('in_channels must be divisible by in_length.')
         if out_channels % out_length != 0:
-            raise ValueError('out_channels must be divisible by out_length')
-
+            raise ValueError('out_channels must be divisible by out_length.')
+        if (in_length != 1) and (in_channels / in_length != out_channels / out_length):
+            raise ValueError('Expected input and output tensor should be the same group, got different group instead.')
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -82,11 +82,11 @@ class CapsuleConv2d(nn.Module):
         self.padding = padding
         self.routing_type = routing_type
         self.kwargs = kwargs
-        self.weight = Parameter(
-            torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, in_length, out_length))
+        self.weight = Parameter(torch.randn(out_channels, in_length, *kernel_size))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, **self.kwargs)
+        return CL.capsule_cov2d(input, self.weight, self.out_length, self.stride, self.padding, self.routing_type,
+                                **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
