@@ -49,12 +49,12 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import capsule_linear
 x = Variable(torch.randn(64, 128, 8))
-w = Variable(torch.randn(10, 128, 16, 8)) 
+w = Variable(torch.randn(10, 16, 8)) 
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
 # routing_type options: ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson']
-y = capsule_linear(x, w, routing_type='sum')
+y = capsule_linear(x, w, routing_type='sum', share_weight=True)
 ```
 or with modules interface:
 ```python

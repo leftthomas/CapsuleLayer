@@ -20,14 +20,14 @@ class CapsuleConv2d(nn.Module):
         in_channels (int): Number of channels in the input image
         out_channels (int): Number of channels produced by the capsule convolution
         kernel_size (int or tuple): Size of the capsule convolving kernel
-        in_length (int): length of each input sample's each capsule
-        out_length (int): length of each output sample's each capsule
+        in_length (int): length of each input capsule
+        out_length (int): length of each output capsule
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
 
     Shape:
-        - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
-        - Output: :math:`(N, C_{out}, H_{out}, W_{out})` where
+        - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
+        - Output: (Tensor): (N, C_{out}, H_{out}, W_{out}) where
           :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - kernel_size[0]) / stride[0] + 1)`
           :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - kernel_size[1]) / stride[1] + 1)`
 
@@ -100,10 +100,11 @@ class CapsuleLinear(nn.Module):
     r"""Applies a fully connection capsules to the incoming data
 
      Args:
-         in_capsules (int): number of each input sample's capsules
-         out_capsules (int): number of each output sample's capsules
-         in_length (int): length of each input sample's each capsule
-         out_length (int): length of each output sample's each capsule
+         in_capsules (int): number of input capsules
+         out_capsules (int): number of output capsules
+         in_length (int): length of each input capsule
+         out_length (int): length of each output capsule
+         share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
            -- options: ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson']
          kwargs (dict, optional): other args:
@@ -111,12 +112,16 @@ class CapsuleLinear(nn.Module):
             routing algorithms
 
      Shape:
-         - Input: :math:`(N, in_capsules, in_length)`
-         - Output: :math:`(N, out_capsules, out_length)`
+         - Input: (Tensor): (N, in_capsules, in_length)
+         - Output: (Tensor): (N, out_capsules, out_length)
 
      Attributes:
-         weight (Tensor): the learnable weights of the module of shape
-             (out_capsules, in_capsules, out_length, in_length)
+         if share_weight:
+         - weight (Tensor): the learnable weights of the module of shape
+              (out_capsules, out_length, in_length)
+        else:
+        -  weight (Tensor): the learnable weights of the module of shape
+              (out_capsules, in_capsules, out_length, in_length)
 
      Examples::
          >>> from capsule_layer import CapsuleLinear
@@ -128,16 +133,21 @@ class CapsuleLinear(nn.Module):
          torch.Size([5, 30, 16])
      """
 
-    def __init__(self, in_capsules, out_capsules, in_length, out_length, routing_type='sum', **kwargs):
+    def __init__(self, in_capsules, out_capsules, in_length, out_length, routing_type='sum', share_weight=False,
+                 **kwargs):
         super(CapsuleLinear, self).__init__()
         self.in_capsules = in_capsules
         self.out_capsules = out_capsules
         self.routing_type = routing_type
         self.kwargs = kwargs
-        self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
+        self.share_weight = share_weight
+        if self.share_weight:
+            self.weight = Parameter(torch.randn(out_capsules, out_length, in_length))
+        else:
+            self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_linear(input, self.weight, self.routing_type, **self.kwargs)
+        return CL.capsule_linear(input, self.weight, self.routing_type, self.share_weight, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
