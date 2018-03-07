@@ -57,7 +57,7 @@ def test_module(batch_size, height, width, in_channels, out_channels, kernel_siz
     x = Variable(torch.randn(batch_size, in_channels, height, width))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
-    assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist())
+    assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist(), abs=1e-5)
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '

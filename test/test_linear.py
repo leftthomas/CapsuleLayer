@@ -50,7 +50,7 @@ def test_module(batch_size, in_capsules, out_capsules, in_length, out_length, ro
     x = Variable(torch.randn(batch_size, in_capsules, in_length))
     y_cpu = module(x)
     y_cuda = module.cuda()(x.cuda())
-    assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist())
+    assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist(), abs=1e-5)
 
 
 @pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, num_iterations',
