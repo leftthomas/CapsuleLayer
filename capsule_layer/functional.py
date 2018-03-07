@@ -48,6 +48,8 @@ def capsule_linear(input, weight, routing_type='sum', **kwargs):
         out = dynamic_route_linear(priors, **kwargs)
     elif routing_type == 'means':
         out = means_route_linear(priors, **kwargs)
+    elif routing_type == 'cosine':
+        out = cosine_route_linear(priors, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
@@ -68,6 +70,15 @@ def means_route_linear(input, num_iterations=3):
     for r in range(num_iterations):
         output = F.normalize(output, p=2, dim=-1)
         logits = (input * output).sum(dim=-1, keepdim=True)
+        probs = F.softmax(logits, dim=-2)
+        output = (probs * input).sum(dim=-2, keepdim=True)
+    return squash(output).squeeze(dim=-2)
+
+
+def cosine_route_linear(input, num_iterations=3):
+    output = input.mean(dim=-2, keepdim=True)
+    for r in range(num_iterations):
+        logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)
         probs = F.softmax(logits, dim=-2)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
