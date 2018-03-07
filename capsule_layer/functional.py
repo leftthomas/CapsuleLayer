@@ -45,21 +45,21 @@ def capsule_linear(input, weight, routing_type='sum', **kwargs):
     if routing_type == 'sum':
         out = priors.sum(dim=-2)
     elif routing_type == 'dynamic':
-        out = dynamic_route_linear(priors, **kwargs)
+        out = dynamic_routing(priors, **kwargs)
     elif routing_type == 'means':
-        out = means_route_linear(priors, **kwargs)
+        out = means_routing(priors, **kwargs)
     elif routing_type == 'cosine':
-        out = cosine_route_linear(priors, **kwargs)
+        out = cosine_routing(priors, **kwargs)
     elif routing_type == 'tonimoto':
-        out = tonimoto_route_linear(priors, **kwargs)
+        out = tonimoto_routing(priors, **kwargs)
     elif routing_type == 'pearson':
-        out = pearson_route_linear(priors, **kwargs)
+        out = pearson_routing(priors, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
 
 
-def dynamic_route_linear(input, num_iterations=3):
+def dynamic_routing(input, num_iterations=3):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-2)
@@ -69,7 +69,7 @@ def dynamic_route_linear(input, num_iterations=3):
     return output.squeeze(dim=-2)
 
 
-def means_route_linear(input, num_iterations=3):
+def means_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         output = F.normalize(output, p=2, dim=-1)
@@ -79,7 +79,7 @@ def means_route_linear(input, num_iterations=3):
     return squash(output).squeeze(dim=-2)
 
 
-def cosine_route_linear(input, num_iterations=3):
+def cosine_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)
@@ -88,7 +88,7 @@ def cosine_route_linear(input, num_iterations=3):
     return squash(output).squeeze(dim=-2)
 
 
-def tonimoto_route_linear(input, num_iterations=3):
+def tonimoto_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         logits = tonimoto_similarity(input, output)
@@ -97,7 +97,7 @@ def tonimoto_route_linear(input, num_iterations=3):
     return squash(output).squeeze(dim=-2)
 
 
-def pearson_route_linear(input, num_iterations=3):
+def pearson_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         logits = pearson_similarity(input, output)

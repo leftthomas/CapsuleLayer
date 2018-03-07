@@ -3,13 +3,12 @@ import torch
 from pytest import approx
 from torch.autograd import Variable
 
-from capsule_layer.functional import dynamic_route_linear, means_route_linear, cosine_route_linear, \
-    tonimoto_route_linear, pearson_route_linear
+from capsule_layer import dynamic_routing, means_routing, cosine_routing, tonimoto_routing, pearson_routing
 
 test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_func, num_iterations) for batch_size
              in [1, 2] for out_capsules in [1, 5, 10] for in_capsules in [1, 4, 20] for out_length in [1, 8, 16] for
-             routing_func in [dynamic_route_linear, means_route_linear, cosine_route_linear, tonimoto_route_linear,
-                              pearson_route_linear] for num_iterations in [1, 4, 50]]
+             routing_func in [dynamic_routing, means_routing, cosine_routing, tonimoto_routing, pearson_routing] for
+             num_iterations in [1, 4, 50]]
 
 
 @pytest.mark.parametrize('batch_size, out_capsules, in_capsules, out_length, routing_func, num_iterations', test_data)
