@@ -49,7 +49,7 @@ w = Variable(torch.randn(10,128,16,8))
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['sum', 'dynamic', 'means', 'cosine']
+# routing_type options: ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson']
 y = capsule_linear(x, w, routing_type='sum')
 ```
 or with modules interface:
@@ -58,7 +58,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
 x = Variable(torch.randn(64,128,8))
-# routing_type options: ['sum', 'dynamic', 'means', 'cosine']
+# routing_type options: ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson']
 module = CapsuleLinear(in_capsules=128, out_capsules=10, in_length=8, out_length=16, routing_type='dynamic', num_iterations=3)
 if torch.cuda.is_available():
     x = x.cuda()

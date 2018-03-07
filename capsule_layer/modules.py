@@ -104,7 +104,8 @@ class CapsuleLinear(nn.Module):
          out_capsules (int): number of each output sample's capsules
          in_length (int): length of each input sample's each capsule
          out_length (int): length of each output sample's each capsule
-         routing_type (str, optional):  routing algorithm type -- options: ['sum', 'dynamic', 'means', 'cosine']
+         routing_type (str, optional):  routing algorithm type
+           -- options: ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson']
          kwargs (dict, optional): other args:
            - num_iterations (int, optional): number of routing iterations -- default value is 3, it not work for sum
             routing algorithms

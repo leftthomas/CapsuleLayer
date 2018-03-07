@@ -50,6 +50,10 @@ def capsule_linear(input, weight, routing_type='sum', **kwargs):
         out = means_route_linear(priors, **kwargs)
     elif routing_type == 'cosine':
         out = cosine_route_linear(priors, **kwargs)
+    elif routing_type == 'tonimoto':
+        out = tonimoto_route_linear(priors, **kwargs)
+    elif routing_type == 'pearson':
+        out = pearson_route_linear(priors, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
@@ -82,6 +86,37 @@ def cosine_route_linear(input, num_iterations=3):
         probs = F.softmax(logits, dim=-2)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
+
+
+def tonimoto_route_linear(input, num_iterations=3):
+    output = input.mean(dim=-2, keepdim=True)
+    for r in range(num_iterations):
+        logits = tonimoto_similarity(input, output)
+        probs = F.softmax(logits, dim=-2)
+        output = (probs * input).sum(dim=-2, keepdim=True)
+    return squash(output).squeeze(dim=-2)
+
+
+def pearson_route_linear(input, num_iterations=3):
+    output = input.mean(dim=-2, keepdim=True)
+    for r in range(num_iterations):
+        logits = pearson_similarity(input, output)
+        probs = F.softmax(logits, dim=-2)
+        output = (probs * input).sum(dim=-2, keepdim=True)
+    return squash(output).squeeze(dim=-2)
+
+
+def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):
+    x1_norm = x1.norm(p=2, dim=dim, keepdim=True)
+    x2_norm = x2.norm(p=2, dim=dim, keepdim=True)
+    dot_value = (x1 * x2).sum(dim=dim, keepdim=True)
+    return dot_value / (x1_norm ** 2 + x2_norm ** 2 - dot_value).clamp(min=eps)
+
+
+def pearson_similarity(x1, x2, dim=-1, eps=1e-8):
+    centered_x1 = x1 - x1.mean(dim=dim, keepdim=True)
+    centered_x2 = x2 - x2.mean(dim=dim, keepdim=True)
+    return F.cosine_similarity(centered_x1, centered_x2, dim=dim, eps=eps).unsqueeze(dim=-1)
 
 
 def squash(input, dim=-1):
