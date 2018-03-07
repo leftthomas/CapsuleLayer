@@ -36,34 +36,41 @@ class CapsuleConv2d(nn.Module):
                          (out_channels, in_length, kernel_size[0], kernel_size[1])
 
     ------------------------------------------------------------------------------------------------
-    !!!!!!!!!     PAY ATTENTION: MAKE SURE CapsuleConv2d's OUTPUT CAPSULE's LENGTH EQUALS
-                               THE NEXT CapsuleConv2d's INPUT CAPSULE's LENGTH            !!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        MAKE SURE THE CapsuleConv2d's OUTPUT CAPSULE's LENGTH EQUALS
+                               THE NEXT CapsuleConv2d's INPUT CAPSULE's LENGTH
+                MAKE SURE THE CapsuleConv2d's OUTPUT CHANNELS DIVIDE THE OUTPUT LENGTH EQUALS
+                        THE IN CHANNELS DIVIDE THE IN LENGTH WHEN THE VALUE IS NOT ONE
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ------------------------------------------------------------------------------------------------
     Examples::
 
         >>> from capsule_layer import CapsuleConv2d
         >>> from torch.autograd import Variable
         >>> # With square kernels and equal stride
-        >>> m = CapsuleConv2d(16, 33, 3, 4, 3, stride=2)
+        >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2)
         >>> # non-square kernels and unequal stride and with padding
-        >>> m1 = CapsuleConv2d(16, 33, (3, 5), 4, 3, stride=(2, 1), padding=(4, 2))
-        >>> input = Variable(torch.randn(20, 16, 50, 100))
+        >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
+        >>> input = Variable(torch.randn(20, 16, 20, 50))
         >>> output = m(input)
         >>> print(output.size())
-        torch.Size([20, 33, 24, 49])
+        torch.Size([20, 24, 9, 24])
+        >>> input = Variable(torch.randn(10, 3, 14, 25))
         >>> output = m1(input)
         >>> print(output.size())
-        torch.Size([20, 33, 28, 100])
+        torch.Size([10, 16, 10, 25])
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
-            raise ValueError('in_channels must be divisible by in_length.')
+            raise ValueError('Expected in_channels must be divisible by in_length.')
         if out_channels % out_length != 0:
-            raise ValueError('out_channels must be divisible by out_length.')
-        if (in_channels != 1) and (in_channels / in_length != out_channels / out_length):
-            raise ValueError('Expected input and output tensor should be the same group, got different group instead.')
+            raise ValueError('Expected out_channels must be divisible by out_length.')
+        groups = in_channels // in_length
+        if (groups != 1) and (groups != out_channels // out_length):
+            raise ValueError('Expected input and output tensor should be the same groups, got {} groups in input '
+                             'tensor, {} groups in output tensor instead.'.format(groups, out_channels // out_length))
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -75,10 +82,10 @@ class CapsuleConv2d(nn.Module):
         self.out_length = out_length
         self.stride = stride
         self.padding = padding
-        self.weight = Parameter(torch.randn(out_channels, in_length, *kernel_size))
+        self.weight = Parameter(torch.randn(out_channels, in_channels // groups, *kernel_size))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.out_length, self.stride, self.padding)
+        return CL.capsule_cov2d(input, self.weight, self.in_length, self.out_length, self.stride, self.padding)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'

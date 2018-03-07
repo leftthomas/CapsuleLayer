@@ -1,9 +1,9 @@
 # Capsule Layer
-PyTorch Capsule Layer, based on Hao Ren's paper [Convolutional Capsule Network for Image Classification](xxx).
+PyTorch Capsule Layer.
 
 ## Requirements
-* [Anaconda](https://www.anaconda.com/download/)
-* PyTorch
+* [Anaconda(Python 3.6 version)](https://www.anaconda.com/download/)
+* PyTorch(version >= 0.3.1)
 ```
 conda install pytorch torchvision cuda90 -c pytorch
 ```
@@ -19,20 +19,20 @@ pip install git+https://github.com/leftthomas/CapsuleLayer.git@master
 import torch
 from torch.autograd import Variable
 from capsule_layer import capsule_cov2d
-x = Variable(torch.randn(4,1,5,7))
-w = Variable(torch.randn(4,1,3,3,1,4)) 
+x = Variable(torch.randn(4,8,28,50))
+w = Variable(torch.randn(16,4,3,5)) 
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-y = capsule_cov2d(x, w, stride=1, padding=1)
+y = capsule_cov2d(x, w, in_length=4, out_length=8, stride=1, padding=1)
 ```
 or with modules interface:
 ```python
 import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
-x = Variable(torch.randn(4,1,5,7))
-module = CapsuleConv2d(in_channels=1, out_channels=16, kernel_size=3, in_length=1, out_length=4, stride=1, padding=1)
+x = Variable(torch.randn(4,8,28,50))
+module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3,5), in_length=4, out_length=8, stride=1, padding=1)
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()
@@ -44,7 +44,7 @@ y = module(x)
 import torch
 from torch.autograd import Variable
 from capsule_layer import capsule_linear
-x = Variable(torch.randn(8,128,8))
+x = Variable(torch.randn(64,128,8))
 w = Variable(torch.randn(10,128,16,8)) 
 if torch.cuda.is_available():
     x = x.cuda()
@@ -57,7 +57,7 @@ or with modules interface:
 import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
-x = Variable(torch.randn(8,128,8))
+x = Variable(torch.randn(64,128,8))
 # routing_type options: ['sum', 'dynamic', 'means']
 module = CapsuleLinear(in_capsules=128, out_capsules=10, in_length=8, out_length=16, routing_type='dynamic', num_iterations=3)
 if torch.cuda.is_available():
@@ -71,7 +71,3 @@ Any contributions to Capsule Layer are welcome!
 
 ## Copyright and License
 Capsule Layer is provided under the [MIT License](LICENSE).
-
-## Credits
-Referenced CuPy fused PyTorch neural networks ops:
-[PyINN by @szagoruyko](https://github.com/szagoruyko/pyinn).
