@@ -15,5 +15,5 @@ test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_func, n
 def test_routing(batch_size, in_capsules, out_capsules, out_length, routing_func, num_iterations):
     x = Variable(torch.randn(batch_size, out_capsules, in_capsules, out_length).double())
     y_cpu = routing_func(x, num_iterations)
-    y_cuda = routing_func(x.cuda())
+    y_cuda = routing_func(x.cuda(), num_iterations)
     assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist())
