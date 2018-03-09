@@ -1,5 +1,5 @@
 # Capsule Layer
-PyTorch Capsule Layer.
+PyTorch Capsule Layer, the CapsuleConv2d is still on progress, it's not working now.
 
 ## Requirements
 * [Anaconda(Python 3.6 version)](https://www.anaconda.com/download/)
@@ -18,17 +18,18 @@ pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
 
 ## Examples
-### CapsuleConv2d(not working now!)
+### CapsuleConv2d
 ```python
 import torch
 from torch.autograd import Variable
 from capsule_layer import capsule_cov2d
 x = Variable(torch.randn(4, 8, 28, 50))
-w = Variable(torch.randn(16, 4, 3, 5)) 
+w = Variable(torch.randn(2, 2, 3, 5, 8, 4)) 
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-y = capsule_cov2d(x, w, in_length=4, out_length=8, stride=1, padding=1)
+# routing_type options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='sum')
 ```
 or with modules interface:
 ```python
@@ -36,7 +37,8 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
 x = Variable(torch.randn(4, 8, 28, 50))
-module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1)
+# routing_type options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='means')
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()

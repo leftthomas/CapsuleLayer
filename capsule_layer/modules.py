@@ -24,6 +24,11 @@ class CapsuleConv2d(nn.Module):
         out_length (int): length of each output capsule
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
+        routing_type (str, optional):  routing algorithm type
+           -- options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+        kwargs (dict, optional): other args:
+           - num_iterations (int, optional): number of routing iterations -- default value is 3, it not work for sum
+            routing algorithms
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -33,14 +38,12 @@ class CapsuleConv2d(nn.Module):
 
     Attributes:
         weight (Tensor): the learnable weights of the module of shape
-                         (out_channels, in_length, kernel_size[0], kernel_size[1])
+           (out_channels // out_length, in_channels // in_length, kernel_size[0], kernel_size[1], out_length, in_length)
 
     ------------------------------------------------------------------------------------------------
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         MAKE SURE THE CapsuleConv2d's OUTPUT CAPSULE's LENGTH EQUALS
                                THE NEXT CapsuleConv2d's INPUT CAPSULE's LENGTH
-                MAKE SURE THE CapsuleConv2d's OUTPUT CHANNELS DIVIDE THE OUTPUT LENGTH EQUALS
-                        THE IN CHANNELS DIVIDE THE IN LENGTH WHEN THE VALUE IS NOT ONE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ------------------------------------------------------------------------------------------------
     Examples::
@@ -61,16 +64,13 @@ class CapsuleConv2d(nn.Module):
         torch.Size([10, 16, 10, 25])
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0):
+    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
+                 routing_type='sum', **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
         if out_channels % out_length != 0:
             raise ValueError('Expected out_channels must be divisible by out_length.')
-        groups = in_channels // in_length
-        if (groups != 1) and (groups != out_channels // out_length):
-            raise ValueError('Expected input and output tensor should be the same groups, got {} groups in input '
-                             'tensor, {} groups in output tensor instead.'.format(groups, out_channels // out_length))
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -82,10 +82,13 @@ class CapsuleConv2d(nn.Module):
         self.out_length = out_length
         self.stride = stride
         self.padding = padding
-        self.weight = Parameter(torch.randn(out_channels, in_channels // groups, *kernel_size))
+        self.routing_type = routing_type
+        self.kwargs = kwargs
+        self.weight = Parameter(
+            torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.in_length, self.out_length, self.stride, self.padding)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'

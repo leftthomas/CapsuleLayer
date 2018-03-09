@@ -2,9 +2,11 @@ import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, in_length, out_length, stride=1, padding=0):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
+    if weight.dim() != 6:
+        raise ValueError('Expected 6D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
     if input.data.type() != weight.data.type():
         raise ValueError('Expected input and weight tensor should be the same type, got {} in '
                          'input tensor, {} in weight tensor instead.'.format(input.data.type(), weight.data.type()))
@@ -12,21 +14,24 @@ def capsule_cov2d(input, weight, in_length, out_length, stride=1, padding=0):
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
     if not weight.is_contiguous():
         raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
-    if input.size(1) % in_length != 0:
+    if input.size(1) % weight.size(-1) != 0:
         raise ValueError('Expected in_channels must be divisible by in_length.')
-    if weight.size(0) % out_length != 0:
-        raise ValueError('Expected out_channels must be divisible by out_length.')
-    groups = input.size(1) // in_length
-    if (groups != 1) and (groups != weight.size(0) // out_length):
-        raise ValueError('Expected input and output tensor should be the same groups, got {} groups in input'
-                         ' tensor, {} groups in output tensor instead.'.format(groups, weight.size(0) // out_length))
-    out = F.conv2d(input, weight, stride=stride, padding=padding, groups=groups)
+    if input.size(1) != (weight.size(1) * weight.size(-1)):
+        raise ValueError('Expected input tensor has the same in_channels as weight tensor, got in_channels {} in input '
+                         'tensor, in_channels {} in weight tensor.'.format(input.size(-1),
+                                                                           weight.size(1) * weight.size(-1)))
+    # TODO
+    raise NotImplementedError('CapsuleConv2d is not implemented.')
     return out
 
 
 def capsule_linear(input, weight, routing_type='sum', share_weight=False, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
+    if share_weight and (weight.dim() != 3):
+        raise ValueError('Expected 3D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
+    if (not share_weight) and (weight.dim() != 4):
+        raise ValueError('Expected 4D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
     if input.data.type() != weight.data.type():
         raise ValueError('Expected input and weight tensor should be the same type, got {} in '
                          'input tensor, {} in weight tensor instead.'.format(input.data.type(), weight.data.type()))
