@@ -11,8 +11,8 @@ from capsule_layer import CapsuleLinear
 test_data = [(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, share_weight, num_iterations)
              for batch_size in [1, 2] for in_capsules in [1, 5, 10] for out_capsules in [1, 4] for in_length in
              [1, 2, 3] for out_length in [1, 2, 3] for routing_type in
-             ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson'] for share_weight in [True, False] for
-             num_iterations in [1, 3, 4]]
+             ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson'] for share_weight in [True, False]
+             for num_iterations in [1, 3, 4]]
 
 
 @pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, '

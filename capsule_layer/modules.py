@@ -106,7 +106,7 @@ class CapsuleLinear(nn.Module):
          out_length (int): length of each output capsule
          share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
-           -- options: ['sum', 'dynamic', 'means', 'cosine', 'tonimoto', 'pearson']
+           -- options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
          kwargs (dict, optional): other args:
            - num_iterations (int, optional): number of routing iterations -- default value is 3, it not work for sum
             routing algorithms

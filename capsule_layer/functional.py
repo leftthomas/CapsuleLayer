@@ -46,9 +46,11 @@ def capsule_linear(input, weight, routing_type='sum', share_weight=False, **kwar
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     if routing_type == 'sum':
-        out = priors.sum(dim=-2)
+        out = sum_routing(priors)
     elif routing_type == 'dynamic':
         out = dynamic_routing(priors, **kwargs)
+    elif routing_type == 'contract':
+        out = contract_routing(priors, **kwargs)
     elif routing_type == 'means':
         out = means_routing(priors, **kwargs)
     elif routing_type == 'cosine':
@@ -62,7 +64,21 @@ def capsule_linear(input, weight, routing_type='sum', share_weight=False, **kwar
     return out
 
 
+def sum_routing(input):
+    return input.sum(dim=-2)
+
+
 def dynamic_routing(input, num_iterations=3):
+    logits = torch.zeros_like(input)
+    for r in range(num_iterations):
+        probs = F.softmax(logits, dim=-2)
+        output = squash((probs * input).sum(dim=-2, keepdim=True))
+        if r != num_iterations - 1:
+            logits = logits + (input * output).sum(dim=-1, keepdim=True)
+    return output.squeeze(dim=-2)
+
+
+def contract_routing(input, num_iterations=3):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-2)
