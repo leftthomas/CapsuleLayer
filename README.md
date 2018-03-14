@@ -5,7 +5,7 @@ PyTorch Capsule Layer, the CapsuleConv2d is still on progress, it's not working 
 * [Anaconda(Python 3.6 version)](https://www.anaconda.com/download/)
 * PyTorch(version >= 0.3.1)
 ```
-conda install pytorch torchvision -c pytorch
+conda install pytorch torchvision cuda90 -c pytorch
 ```
 
 ## Installation
