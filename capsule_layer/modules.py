@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch import nn
 from torch.nn.modules.utils import _pair
@@ -87,15 +85,7 @@ class CapsuleConv2d(nn.Module):
         self.routing_type = routing_type
         self.kwargs = kwargs
         self.weight = Parameter(
-            torch.Tensor(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        n = self.in_channels
-        for k in self.kernel_size:
-            n *= k
-        stdv = 1. / math.sqrt(n)
-        self.weight.data.uniform_(-stdv, stdv)
+            torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, **self.kwargs)
@@ -155,18 +145,9 @@ class CapsuleLinear(nn.Module):
         self.kwargs = kwargs
         self.share_weight = share_weight
         if self.share_weight:
-            self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
+            self.weight = Parameter(torch.randn(out_capsules, out_length, in_length))
         else:
-            self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        if self.share_weight:
-            stdv = 1. / math.sqrt(self.weight.size(-1))
-            self.weight.data.uniform_(-stdv, stdv)
-        else:
-            stdv = 1. / math.sqrt(self.weight.size(1) * self.weight.size(-1))
-            self.weight.data.uniform_(-stdv, stdv)
+            self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.routing_type, self.share_weight, **self.kwargs)
