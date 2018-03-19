@@ -87,7 +87,8 @@ class CapsuleConv2d(nn.Module):
         self.routing_type = routing_type
         self.kwargs = kwargs
         self.weight = Parameter(
-            torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
+            torch.Tensor(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
+        self.reset_parameters()
 
     def reset_parameters(self):
         n = self.in_channels
@@ -154,9 +155,10 @@ class CapsuleLinear(nn.Module):
         self.kwargs = kwargs
         self.share_weight = share_weight
         if self.share_weight:
-            self.weight = Parameter(torch.randn(out_capsules, out_length, in_length))
+            self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
         else:
-            self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
+            self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
+        self.reset_parameters()
 
     def reset_parameters(self):
         if self.share_weight:
