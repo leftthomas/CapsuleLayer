@@ -15,10 +15,10 @@ test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_func, n
 
 @pytest.mark.parametrize('batch_size, out_capsules, in_capsules, out_length, routing_func, num_iterations', test_data)
 def test_routing(batch_size, in_capsules, out_capsules, out_length, routing_func, num_iterations):
-    x = Variable(torch.randn(batch_size, out_capsules, in_capsules, out_length).double())
+    x = torch.randn(batch_size, out_capsules, in_capsules, out_length).double()
     if routing_func == sum_routing:
-        y_cpu = routing_func(x)
-        y_cuda = routing_func(x.cuda())
+        y_cpu = routing_func(Variable(x))
+        y_cuda = routing_func(Variable(x.cuda()))
     else:
         y_cpu = routing_func(x, num_iterations)
         y_cuda = routing_func(x.cuda(), num_iterations)
