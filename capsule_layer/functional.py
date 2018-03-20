@@ -79,7 +79,7 @@ def dynamic_routing(input, num_iterations=3):
         probs = F.softmax(logits, dim=-2)
         output = squash((probs * input).sum(dim=-2, keepdim=True))
         if r != num_iterations - 1:
-            logits += (input * output).sum(dim=-1, keepdim=True)
+            logits = logits + (input * output).sum(dim=-1, keepdim=True)
     return output.squeeze(dim=-2)
 
 
