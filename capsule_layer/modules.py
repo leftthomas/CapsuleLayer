@@ -98,19 +98,17 @@ class CapsuleConv2d(nn.Module):
 
 
 class CapsuleLinear(nn.Module):
-    r"""Applies a linear connection capsules to the incoming data
+    r"""Applies a linear combination to the incoming capsules
 
      Args:
-         in_capsules (int): number of input capsules
          out_capsules (int): number of output capsules
          in_length (int): length of each input capsule
          out_length (int): length of each output capsule
+         in_capsules (int, optional): number of input capsules
          share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
-           -- options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-         kwargs (dict, optional): other args:
-           - num_iterations (int, optional): number of routing iterations -- default value is 3, it not work for sum
-            routing algorithms
+           -- options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+         num_iterations (int, optional): number of routing iterations
 
      Shape:
          - Input: (Tensor): (N, in_capsules, in_length)
@@ -127,28 +125,35 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
-         >>> m = CapsuleLinear(20, 30, 8, 16, routing_type = 'dynamic', num_iterations=5)
+         >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'dynamic', num_iterations=5)
          >>> input = Variable(torch.randn(5, 20, 8))
          >>> output = m(input)
          >>> print(output.size())
          torch.Size([5, 30, 16])
      """
 
-    def __init__(self, in_capsules, out_capsules, in_length, out_length, routing_type='sum', share_weight=False,
-                 **kwargs):
+    def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
+                 routing_type='contract', num_iterations=3):
         super(CapsuleLinear, self).__init__()
-        self.in_capsules = in_capsules
         self.out_capsules = out_capsules
-        self.routing_type = routing_type
-        self.kwargs = kwargs
+        self.in_capsules = in_capsules
         self.share_weight = share_weight
+        self.routing_type = routing_type
+        self.num_iterations = num_iterations
+
         if self.share_weight:
-            self.weight = Parameter(torch.randn(out_capsules, out_length, in_length))
+            if in_capsules is not None:
+                raise ValueError('Expected in_capsules must be None.')
+            else:
+                self.weight = Parameter(torch.randn(out_capsules, out_length, in_length))
         else:
-            self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
+            if in_capsules is None:
+                raise ValueError('Expected in_capsules must be int.')
+            else:
+                self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_linear(input, self.weight, self.routing_type, self.share_weight, **self.kwargs)
+        return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \

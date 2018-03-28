@@ -25,7 +25,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='contract', n
     return out
 
 
-def capsule_linear(input, weight, routing_type='sum', share_weight=False, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='contract', num_iterations=3):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -50,27 +50,21 @@ def capsule_linear(input, weight, routing_type='sum', share_weight=False, **kwar
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
-    if routing_type == 'sum':
-        out = sum_routing(priors)
-    elif routing_type == 'dynamic':
-        out = dynamic_routing(priors, **kwargs)
+    if routing_type == 'dynamic':
+        out = dynamic_routing(priors, num_iterations)
     elif routing_type == 'contract':
-        out = contract_routing(priors, **kwargs)
+        out = contract_routing(priors, num_iterations)
     elif routing_type == 'means':
-        out = means_routing(priors, **kwargs)
+        out = means_routing(priors, num_iterations)
     elif routing_type == 'cosine':
-        out = cosine_routing(priors, **kwargs)
+        out = cosine_routing(priors, num_iterations)
     elif routing_type == 'tonimoto':
-        out = tonimoto_routing(priors, **kwargs)
+        out = tonimoto_routing(priors, num_iterations)
     elif routing_type == 'pearson':
-        out = pearson_routing(priors, **kwargs)
+        out = pearson_routing(priors, num_iterations)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
-
-
-def sum_routing(input):
-    return input.sum(dim=-2)
 
 
 def dynamic_routing(input, num_iterations=3):
