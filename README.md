@@ -28,8 +28,8 @@ w = Variable(torch.randn(2, 2, 3, 5, 8, 4))
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='sum')
+# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='dynamic')
 ```
 or with modules interface:
 ```python
@@ -37,7 +37,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
 x = Variable(torch.randn(4, 8, 28, 50))
-# routing_type options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
 module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='means')
 if torch.cuda.is_available():
     x = x.cuda()
@@ -55,8 +55,8 @@ w = Variable(torch.randn(10, 16, 8))
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-y = capsule_linear(x, w, routing_type='sum', share_weight=True)
+# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+y = capsule_linear(x, w, routing_type='contract', share_weight=True)
 ```
 or with modules interface:
 ```python
@@ -64,8 +64,8 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
 x = Variable(torch.randn(64, 128, 8))
-# routing_type options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-module = CapsuleLinear(in_capsules=128, out_capsules=10, in_length=8, out_length=16, routing_type='dynamic', num_iterations=3)
+# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+module = CapsuleLinear(in_capsules=128, out_capsules=10, in_length=8, out_length=16, routing_type='contract', num_iterations=3)
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()
@@ -73,16 +73,6 @@ y = module(x)
 ```
 
 ### Routing Algorithm
-* sum routing
-```python
-import torch
-from torch.autograd import Variable
-import capsule_layer.functional as F
-x = Variable(torch.randn(32, 10, 43, 6))
-if torch.cuda.is_available():
-    x = x.cuda()
-y = F.sum_routing(x)
-```
 * dynamic routing
 ```python
 import torch

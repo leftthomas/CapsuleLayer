@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='sum', **kwargs):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='contract', num_iterations=3):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 6:

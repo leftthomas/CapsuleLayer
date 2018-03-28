@@ -25,10 +25,8 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type
-           -- options: ['sum', 'dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-        kwargs (dict, optional): other args:
-           - num_iterations (int, optional): number of routing iterations -- default value is 3, it not work for sum
-            routing algorithms
+           -- options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+        num_iterations (int, optional): number of routing iterations
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -65,7 +63,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 routing_type='sum', **kwargs):
+                 routing_type='contract', num_iterations=3):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -83,12 +81,12 @@ class CapsuleConv2d(nn.Module):
         self.stride = stride
         self.padding = padding
         self.routing_type = routing_type
-        self.kwargs = kwargs
+        self.num_iterations = num_iterations
         self.weight = Parameter(
             torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, **self.kwargs)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -100,7 +98,7 @@ class CapsuleConv2d(nn.Module):
 
 
 class CapsuleLinear(nn.Module):
-    r"""Applies a fully connection capsules to the incoming data
+    r"""Applies a linear connection capsules to the incoming data
 
      Args:
          in_capsules (int): number of input capsules
