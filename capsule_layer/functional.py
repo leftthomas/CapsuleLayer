@@ -70,7 +70,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='contract', nu
 def dynamic_routing(input, num_iterations=3):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
-        probs = F.softmax(logits, dim=-2)
+        probs = F.softmax(logits, dim=1)
         output = squash((probs * input).sum(dim=-2, keepdim=True))
         if r != num_iterations - 1:
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
@@ -80,7 +80,7 @@ def dynamic_routing(input, num_iterations=3):
 def contract_routing(input, num_iterations=3):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
-        probs = F.softmax(logits, dim=-2)
+        probs = F.softmax(logits, dim=1)
         output = squash((probs * input).sum(dim=-2, keepdim=True))
         if r != num_iterations - 1:
             logits = (input * output).sum(dim=-1, keepdim=True)
@@ -92,7 +92,7 @@ def means_routing(input, num_iterations=3):
     for r in range(num_iterations):
         output = F.normalize(output, p=2, dim=-1)
         logits = (input * output).sum(dim=-1, keepdim=True)
-        probs = F.softmax(logits, dim=-2)
+        probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
 
@@ -101,7 +101,7 @@ def cosine_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)
-        probs = F.softmax(logits, dim=-2)
+        probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
 
@@ -110,7 +110,7 @@ def tonimoto_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         logits = tonimoto_similarity(input, output)
-        probs = F.softmax(logits, dim=-2)
+        probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
 
@@ -119,7 +119,7 @@ def pearson_routing(input, num_iterations=3):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         logits = pearson_similarity(input, output)
-        probs = F.softmax(logits, dim=-2)
+        probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
 
