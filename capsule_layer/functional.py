@@ -21,6 +21,9 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='contract', n
                          'tensor, in_channels {} in weight tensor.'.format(input.size(-1),
                                                                            weight.size(1) * weight.size(-1)))
     # TODO
+    # two method
+    # 1. softmax between lower layer capsules, sum the prob of capsule_i to 1
+    # 2. softmax between higher layer capsules, sum the prob of capsule_j to 1
     raise NotImplementedError('CapsuleConv2d is not implemented.')
     return out
 
