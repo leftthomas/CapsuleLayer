@@ -57,9 +57,11 @@ def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, 
 def test_module(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, share_weight,
                 num_iterations):
     if share_weight:
-        in_capsules = None
+        num_in_capsules = None
+    else:
+        num_in_capsules = in_capsules
     module = CapsuleLinear(out_capsules=out_capsules, in_length=in_length, out_length=out_length,
-                           in_capsules=in_capsules, share_weight=share_weight, routing_type=routing_type,
+                           in_capsules=num_in_capsules, share_weight=share_weight, routing_type=routing_type,
                            num_iterations=num_iterations)
     x = torch.randn(batch_size, in_capsules, in_length)
     y_cpu = module(Variable(x))
