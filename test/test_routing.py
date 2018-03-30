@@ -5,9 +5,8 @@ from torch.autograd import Variable
 
 from capsule_layer.functional import dynamic_routing, k_means_routing, db_scan_routing
 
-kwargs_data = {'dynamic': [{'cum': True}, {'cum': False}],
-               'k_means': [{'similarity': 'cosine'}, {'similarity': 'standardized_cosine'}, {'similarity': 'tonimoto'},
-                           {'similarity': 'pearson'}], 'db_scan': [{'distance': 'euclidean'}]}
+kwargs_data = {'dynamic': [True, False], 'k_means': ['cosine', 'standardized_cosine', 'tonimoto', 'pearson'],
+               'db_scan': ['euclidean']}
 routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing, 'db_scan': db_scan_routing}
 
 test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, kwargs, num_iterations) for batch_size
