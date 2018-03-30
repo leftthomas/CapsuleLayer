@@ -65,15 +65,15 @@ def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num
 
 
 def dynamic_routing(input, num_iterations=3, cum=False):
-    logits = torch.zeros_like(input[:, :, :, 0])
+    logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
-        output = squash((probs.unsqueeze(dim=-1) * input).sum(dim=-2, keepdim=True))
+        output = squash((probs * input).sum(dim=-2, keepdim=True))
         if r != num_iterations - 1:
             if cum:
-                logits = logits + (input * output).sum(dim=-1)
+                logits = logits + (input * output).sum(dim=-1, keepdim=True)
             else:
-                logits = (input * output).sum(dim=-1)
+                logits = (input * output).sum(dim=-1, keepdim=True)
     return output.squeeze(dim=-2)
 
 
