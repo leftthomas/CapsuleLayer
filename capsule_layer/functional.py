@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='contract', num_iterations=3):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='dynamic', num_iterations=3, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 6:
@@ -25,10 +25,9 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='contract', n
     # 1. softmax between lower layer capsules, sum the prob of capsule_i to 1
     # 2. softmax between higher layer capsules, sum the prob of capsule_j to 1
     raise NotImplementedError('CapsuleConv2d is not implemented.')
-    return out
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='contract', num_iterations=3):
+def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num_iterations=3, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -54,77 +53,52 @@ def capsule_linear(input, weight, share_weight=True, routing_type='contract', nu
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     if routing_type == 'dynamic':
-        out = dynamic_routing(priors, num_iterations)
-    elif routing_type == 'contract':
-        out = contract_routing(priors, num_iterations)
-    elif routing_type == 'means':
-        out = means_routing(priors, num_iterations)
-    elif routing_type == 'cosine':
-        out = cosine_routing(priors, num_iterations)
-    elif routing_type == 'tonimoto':
-        out = tonimoto_routing(priors, num_iterations)
-    elif routing_type == 'pearson':
-        out = pearson_routing(priors, num_iterations)
+        out = dynamic_routing(priors, num_iterations, **kwargs)
+    elif routing_type == 'k_means':
+        out = k_means_routing(priors, num_iterations, **kwargs)
+    elif routing_type == 'db_scan':
+        out = db_scan_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
 
 
-def dynamic_routing(input, num_iterations=3):
+def dynamic_routing(input, num_iterations=3, cum=False):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
         output = squash((probs * input).sum(dim=-2, keepdim=True))
         if r != num_iterations - 1:
-            logits = logits + (input * output).sum(dim=-1, keepdim=True)
+            if cum:
+                logits = logits + (input * output).sum(dim=-1, keepdim=True)
+            else:
+                logits = (input * output).sum(dim=-1, keepdim=True)
     return output.squeeze(dim=-2)
 
 
-def contract_routing(input, num_iterations=3):
-    logits = torch.zeros_like(input)
+def k_means_routing(input, num_iterations=3, similarity='cosine'):
+    output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
-        probs = F.softmax(logits, dim=1)
-        output = squash((probs * input).sum(dim=-2, keepdim=True))
-        if r != num_iterations - 1:
+        if similarity == 'cosine':
+            output = F.normalize(output, p=2, dim=-1)
             logits = (input * output).sum(dim=-1, keepdim=True)
-    return output.squeeze(dim=-2)
-
-
-def means_routing(input, num_iterations=3):
-    output = input.mean(dim=-2, keepdim=True)
-    for r in range(num_iterations):
-        output = F.normalize(output, p=2, dim=-1)
-        logits = (input * output).sum(dim=-1, keepdim=True)
+        elif similarity == 'standardized_cosine':
+            logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)
+        elif similarity == 'tonimoto':
+            logits = tonimoto_similarity(input, output)
+        elif similarity == 'pearson':
+            logits = pearson_similarity(input, output)
+        else:
+            raise NotImplementedError(
+                '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
     return squash(output).squeeze(dim=-2)
 
 
-def cosine_routing(input, num_iterations=3):
-    output = input.mean(dim=-2, keepdim=True)
-    for r in range(num_iterations):
-        logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)
-        probs = F.softmax(logits, dim=1)
-        output = (probs * input).sum(dim=-2, keepdim=True)
-    return squash(output).squeeze(dim=-2)
-
-
-def tonimoto_routing(input, num_iterations=3):
-    output = input.mean(dim=-2, keepdim=True)
-    for r in range(num_iterations):
-        logits = tonimoto_similarity(input, output)
-        probs = F.softmax(logits, dim=1)
-        output = (probs * input).sum(dim=-2, keepdim=True)
-    return squash(output).squeeze(dim=-2)
-
-
-def pearson_routing(input, num_iterations=3):
-    output = input.mean(dim=-2, keepdim=True)
-    for r in range(num_iterations):
-        logits = pearson_similarity(input, output)
-        probs = F.softmax(logits, dim=1)
-        output = (probs * input).sum(dim=-2, keepdim=True)
-    return squash(output).squeeze(dim=-2)
+def db_scan_routing(input, num_iterations=3, distance='euclidean'):
+    # TODO
+    raise NotImplementedError('DB SCAN routing algorithm is not implemented.')
 
 
 def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):

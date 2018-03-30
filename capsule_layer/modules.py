@@ -25,8 +25,14 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type
-           -- options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+           -- options: ['dynamic', 'k_means', 'db_scan']
         num_iterations (int, optional): number of routing iterations
+        kwargs (dict, optional): other args:
+           - cum (bool, optional): accumulate similarity or not, it only works for 'dynamic' routing
+           - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
+               -- options: ['cosine', 'standardized_cosine', 'tonimoto', 'pearson']
+           - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
+               -- options: ['euclidean', 'cosine']
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -63,7 +69,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 routing_type='contract', num_iterations=3):
+                 routing_type='dynamic', num_iterations=3, **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -82,11 +88,13 @@ class CapsuleConv2d(nn.Module):
         self.padding = padding
         self.routing_type = routing_type
         self.num_iterations = num_iterations
+        self.kwargs = kwargs
         self.weight = Parameter(
             torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations,
+                                **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -107,8 +115,14 @@ class CapsuleLinear(nn.Module):
          in_capsules (int, optional): number of input capsules
          share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
-           -- options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+            -- options: ['dynamic', 'k_means', 'db_scan']
          num_iterations (int, optional): number of routing iterations
+         kwargs (dict, optional): other args:
+            - cum (bool, optional): accumulate similarity or not, it only works for 'dynamic' routing
+            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
+                -- options: ['cosine', 'standardized_cosine', 'tonimoto', 'pearson']
+            - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
+                -- options: ['euclidean', 'cosine']
 
      Shape:
          - Input: (Tensor): (N, in_capsules, in_length)
@@ -125,7 +139,7 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
-         >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'dynamic', num_iterations=5)
+         >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'k_means', num_iterations=5)
          >>> input = Variable(torch.randn(5, 20, 8))
          >>> output = m(input)
          >>> print(output.size())
@@ -133,13 +147,14 @@ class CapsuleLinear(nn.Module):
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='contract', num_iterations=3):
+                 routing_type='dynamic', num_iterations=3, **kwargs):
         super(CapsuleLinear, self).__init__()
         self.out_capsules = out_capsules
         self.in_capsules = in_capsules
         self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
+        self.kwargs = kwargs
 
         if self.share_weight:
             if in_capsules is not None:
@@ -153,7 +168,8 @@ class CapsuleLinear(nn.Module):
                 self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
-        return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations)
+        return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
+                                 **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
