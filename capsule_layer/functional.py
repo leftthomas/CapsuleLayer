@@ -119,3 +119,4 @@ def squash(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (0.5 + norm ** 2)
     return scale * input
+
