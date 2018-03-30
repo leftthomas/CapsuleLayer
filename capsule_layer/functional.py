@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='dynamic', num_iterations=3, **kwargs):
@@ -64,15 +65,15 @@ def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num
 
 
 def dynamic_routing(input, num_iterations=3, cum=False):
-    logits = torch.zeros_like(input)
+    logits = torch.zeros_like(input[:, :, :, 0])
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
-        output = squash((probs * input).sum(dim=-2, keepdim=True))
+        output = squash((probs.unsqueeze(dim=-1) * input).sum(dim=-2, keepdim=True))
         if r != num_iterations - 1:
             if cum:
-                logits = logits + (input * output).sum(dim=-1, keepdim=True)
+                logits = logits + (input * output).sum(dim=-1)
             else:
-                logits = (input * output).sum(dim=-1, keepdim=True)
+                logits = (input * output).sum(dim=-1)
     return output.squeeze(dim=-2)
 
 
@@ -118,3 +119,8 @@ def squash(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (0.5 + norm ** 2)
     return scale * input
+
+
+if __name__ == '__main__':
+    input = Variable(torch.randn(3, 4, 5, 6).cuda())
+    dynamic_routing(input, cum=False)
