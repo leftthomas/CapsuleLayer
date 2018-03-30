@@ -28,7 +28,7 @@ w = torch.randn(2, 2, 3, 5, 8, 4)
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
+# routing_type options: ['dynamic', 'k_means', 'db_scan']
 y = capsule_cov2d(Variable(x), Variable(w), stride=1, padding=1, routing_type='dynamic')
 ```
 or with modules interface:
@@ -37,8 +37,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
 x = torch.randn(4, 8, 28, 50)
-# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='means')
+module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='dynamic')
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()
@@ -55,8 +54,8 @@ w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-y = capsule_linear(Variable(x), Variable(w), share_weight=True, routing_type='contract')
+# routing_type options: ['dynamic', 'k_means', 'db_scan']
+y = capsule_linear(Variable(x), Variable(w), share_weight=True, routing_type='k_means')
 ```
 or with modules interface:
 ```python
@@ -64,8 +63,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
 x = torch.randn(64, 128, 8)
-# routing_type options: ['dynamic', 'contract', 'means', 'cosine', 'tonimoto', 'pearson']
-module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='contract', num_iterations=3)
+module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='k_means', num_iterations=3)
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()
@@ -81,9 +79,9 @@ import capsule_layer.functional as F
 x = torch.randn(64, 10, 128, 8)
 if torch.cuda.is_available():
     x = x.cuda()
-y = F.dynamic_routing(Variable(x), num_iterations=10)
+y = F.dynamic_routing(Variable(x), num_iterations=10, cum=False)
 ```
-* contract routing
+* k-means routing
 ```python
 import torch
 from torch.autograd import Variable
@@ -91,9 +89,10 @@ import capsule_layer.functional as F
 x = torch.randn(64, 5, 64, 8)
 if torch.cuda.is_available():
     x = x.cuda()
-y = F.contract_routing(Variable(x), num_iterations=100)
+# similarity options: ['cosine', 'standardized_cosine', 'tonimoto', 'pearson']
+y = F.k_means_routing(Variable(x), num_iterations=100, similarity='tonimoto')
 ```
-* means routing
+* DBSCAN routing
 ```python
 import torch
 from torch.autograd import Variable
@@ -101,37 +100,8 @@ import capsule_layer.functional as F
 x = torch.randn(16, 10, 128, 8)
 if torch.cuda.is_available():
     x = x.cuda()
-y = F.means_routing(Variable(x), num_iterations=5)
-```
-* cosine routing
-```python
-import torch
-from torch.autograd import Variable
-import capsule_layer.functional as F
-x = torch.randn(64, 10, 32, 8)
-if torch.cuda.is_available():
-    x = x.cuda()
-y = F.cosine_routing(Variable(x), num_iterations=20)
-```
-* tonimoto routing
-```python
-import torch
-from torch.autograd import Variable
-import capsule_layer.functional as F
-x = torch.randn(8, 5, 32, 8)
-if torch.cuda.is_available():
-    x = x.cuda()
-y = F.tonimoto_routing(Variable(x), num_iterations=4)
-```
-* pearson routing
-```python
-import torch
-from torch.autograd import Variable
-import capsule_layer.functional as F
-x = torch.randn(7, 10, 64, 16)
-if torch.cuda.is_available():
-    x = x.cuda()
-y = F.pearson_routing(Variable(x), num_iterations=12)
+# distance options: ['euclidean']
+y = F.db_scan_routing(Variable(x), num_iterations=5, distance='euclidean')
 ```
 
 ### Similarity Algorithm

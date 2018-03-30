@@ -30,10 +30,8 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
                     in_length).double(), requires_grad=True)
     x_gpu = Variable(x_cpu.data.cuda(), requires_grad=True)
     w_gpu = Variable(w_cpu.data.cuda(), requires_grad=True)
-    y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride=stride, padding=padding, routing_type=routing_type,
-                              num_iterations=num_iterations, kwargs=kwargs)
-    y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride=stride, padding=padding, routing_type=routing_type,
-                             num_iterations=num_iterations, kwargs=kwargs)
+    y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride, padding, routing_type, num_iterations, **kwargs)
+    y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride, padding, routing_type, num_iterations, **kwargs)
     assert y_fast.cpu().data.view(-1).tolist() == approx(y_ref.data.view(-1).tolist())
 
     go_cpu = torch.randn(y_ref.size()).double()
@@ -42,13 +40,13 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
     gx_fast = x_gpu.grad.data.clone()
     gw_fast = w_gpu.grad.data.clone()
     assert gradcheck(partial(CL.capsule_cov2d, stride=stride, padding=padding, routing_type=routing_type,
-                             num_iterations=num_iterations, kwargs=kwargs), (x_gpu, w_gpu))
+                             num_iterations=num_iterations, **kwargs), (x_gpu, w_gpu))
 
     y_ref.backward(go_cpu)
     gx_ref = x_cpu.grad.data.clone()
     gw_ref = w_cpu.grad.data.clone()
     assert gradcheck(partial(CL.capsule_cov2d, stride=stride, padding=padding, routing_type=routing_type,
-                             num_iterations=num_iterations, kwargs=kwargs), (x_cpu, w_cpu))
+                             num_iterations=num_iterations, **kwargs), (x_cpu, w_cpu))
 
     assert gx_fast.cpu().view(-1).tolist() == approx(gx_ref.view(-1).tolist())
     assert gw_fast.cpu().view(-1).tolist() == approx(gw_ref.view(-1).tolist())
@@ -58,10 +56,8 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
                          'in_length, out_length, stride, padding, routing_type, kwargs, num_iterations', test_data)
 def test_module(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
                 out_length, stride, padding, routing_type, kwargs, num_iterations):
-    module = CapsuleConv2d(in_channels=in_channels, out_channels=out_channels,
-                           kernel_size=(kernel_size_h, kernel_size_w), in_length=in_length, out_length=out_length,
-                           stride=stride, padding=padding, routing_type=routing_type, num_iterations=num_iterations,
-                           kwargs=kwargs)
+    module = CapsuleConv2d(in_channels, out_channels, (kernel_size_h, kernel_size_w), in_length, out_length, stride,
+                           padding, routing_type, num_iterations, **kwargs)
     x = torch.randn(batch_size, in_channels, height, width)
     y_cpu = module(Variable(x))
     y_cuda = module.cuda()(Variable(x.cuda()))
@@ -80,10 +76,8 @@ def test_multigpu(batch_size, height, width, in_channels, out_channels, kernel_s
     w1 = Variable(
         torch.randn(out_channels // out_length, in_channels // in_length, kernel_size_h, kernel_size_w, out_length,
                     in_length).cuda(1), requires_grad=True)
-    y0 = CL.capsule_cov2d(a0, w0, stride=stride, padding=padding, routing_type=routing_type,
-                          num_iterations=num_iterations, kwargs=kwargs)
+    y0 = CL.capsule_cov2d(a0, w0, stride, padding, routing_type, num_iterations, **kwargs)
     go = torch.randn(y0.size()).cuda()
     y0.backward(go)
-    y1 = CL.capsule_cov2d(a1, w1, stride=stride, padding=padding, routing_type=routing_type,
-                          num_iterations=num_iterations, kwargs=kwargs)
+    y1 = CL.capsule_cov2d(a1, w1, stride, padding, routing_type, num_iterations, **kwargs)
     y1.backward(go.cuda(1))
