@@ -32,7 +32,7 @@ class CapsuleConv2d(nn.Module):
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['cosine', 'standardized_cosine', 'tonimoto', 'pearson']
            - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
-               -- options: ['euclidean', 'cosine']
+               -- options: ['euclidean']
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -122,7 +122,7 @@ class CapsuleLinear(nn.Module):
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['cosine', 'standardized_cosine', 'tonimoto', 'pearson']
             - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
-                -- options: ['euclidean', 'cosine']
+                -- options: ['euclidean']
 
      Shape:
          - Input: (Tensor): (N, in_capsules, in_length)
