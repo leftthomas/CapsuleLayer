@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='dynamic', num_iterations=3, **kwargs):
@@ -54,6 +53,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     if routing_type == 'dynamic':
+        # [batch_size, out_capsules, out_length]
         out = dynamic_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'k_means':
         out = k_means_routing(priors, num_iterations, **kwargs)
@@ -119,8 +119,3 @@ def squash(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (0.5 + norm ** 2)
     return scale * input
-
-
-if __name__ == '__main__':
-    input = Variable(torch.randn(3, 4, 5, 6).cuda())
-    dynamic_routing(input, cum=False)
