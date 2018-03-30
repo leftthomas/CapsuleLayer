@@ -14,7 +14,7 @@ kwargs_data = {'dynamic': [{'cum': True}, {'cum': False}],
 test_data = [
     (batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, kwargs, share_weight, num_iterations)
     for batch_size in [1, 2] for in_capsules in [1, 5, 10] for out_capsules in [1, 4] for in_length in
-    [1, 2, 3] for out_length in [1, 2, 3] for routing_type in ['dynamic', 'k_means'] for kwargs in
+    [1, 2, 3] for out_length in [1, 2, 3] for routing_type in ['dynamic', 'k_means', 'db_scan'] for kwargs in
     kwargs_data[routing_type] for share_weight in [True, False] for num_iterations in [1, 3, 4]]
 
 
