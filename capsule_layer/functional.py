@@ -64,26 +64,27 @@ def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num
     return out
 
 
-def dynamic_routing(input, num_iterations=3, cum=False):
+def dynamic_routing(input, num_iterations=3, cum=False, squash=True):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
-        output = squash((probs * input).sum(dim=-2, keepdim=True))
+        output = (probs * input).sum(dim=-2, keepdim=True)
         if r != num_iterations - 1:
+            output = flaser(output)
             if cum:
                 logits = logits + (input * output).sum(dim=-1, keepdim=True)
             else:
                 logits = (input * output).sum(dim=-1, keepdim=True)
-    return output.squeeze(dim=-2)
+    if squash:
+        return flaser(output).squeeze(dim=-2)
+    else:
+        return output.squeeze(dim=-2)
 
 
-def k_means_routing(input, num_iterations=3, similarity='cosine'):
+def k_means_routing(input, num_iterations=3, similarity='cosine', squash=True):
     output = input.mean(dim=-2, keepdim=True)
     for r in range(num_iterations):
         if similarity == 'cosine':
-            output = F.normalize(output, p=2, dim=-1)
-            logits = (input * output).sum(dim=-1, keepdim=True)
-        elif similarity == 'standardized_cosine':
             logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)
         elif similarity == 'tonimoto':
             logits = tonimoto_similarity(input, output)
@@ -94,10 +95,13 @@ def k_means_routing(input, num_iterations=3, similarity='cosine'):
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
-    return squash(output).squeeze(dim=-2)
+    if squash:
+        return flaser(output).squeeze(dim=-2)
+    else:
+        return output.squeeze(dim=-2)
 
 
-def db_scan_routing(input, num_iterations=3, distance='euclidean'):
+def db_scan_routing(input, num_iterations=3, distance='euclidean', squash=False):
     # TODO
     raise NotImplementedError('DB SCAN routing algorithm is not implemented.')
 
@@ -115,7 +119,7 @@ def pearson_similarity(x1, x2, dim=-1, eps=1e-8):
     return F.cosine_similarity(centered_x1, centered_x2, dim=dim, eps=eps).unsqueeze(dim=-1)
 
 
-def squash(input, dim=-1):
+def flaser(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (0.5 + norm ** 2)
     return scale * input
