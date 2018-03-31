@@ -64,17 +64,14 @@ def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num
     return out
 
 
-def dynamic_routing(input, num_iterations=3, cum=False, squash=True):
+def dynamic_routing(input, num_iterations=3, squash=True):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
         if r != num_iterations - 1:
             output = flaser(output)
-            if cum:
-                logits = logits + (input * output).sum(dim=-1, keepdim=True)
-            else:
-                logits = (input * output).sum(dim=-1, keepdim=True)
+            logits = logits + (input * output).sum(dim=-1, keepdim=True)
     if squash:
         return flaser(output).squeeze(dim=-2)
     else:
@@ -101,7 +98,7 @@ def k_means_routing(input, num_iterations=3, similarity='cosine', squash=True):
         return output.squeeze(dim=-2)
 
 
-def db_scan_routing(input, num_iterations=3, distance='euclidean', squash=False):
+def db_scan_routing(input, num_iterations=3, distance='euclidean', squash=True):
     # TODO
     raise NotImplementedError('DB SCAN routing algorithm is not implemented.')
 
