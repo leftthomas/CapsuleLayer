@@ -8,13 +8,11 @@ from torch.autograd import Variable, gradcheck
 import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
-kwargs_data = {
-    'dynamic': [{'cum': True, 'squash': True}, {'cum': True, 'squash': False}, {'cum': False, 'squash': True},
-                {'cum': False, 'squash': False}],
-    'k_means': [{'similarity': 'cosine', 'squash': True}, {'similarity': 'cosine', 'squash': False},
-                {'similarity': 'tonimoto', 'squash': True}, {'similarity': 'tonimoto', 'squash': False},
-                {'similarity': 'pearson', 'squash': True}, {'similarity': 'pearson', 'squash': False}],
-    'db_scan': [{'distance': 'euclidean', 'squash': True}, {'distance': 'euclidean', 'squash': False}]}
+kwargs_data = {'dynamic': [{'cum': cum, 'squash': squash} for cum in [True, False] for squash in [True, False]],
+               'k_means': [{'similarity': similarity, 'squash': squash} for similarity in
+                           ['cosine', 'tonimoto', 'pearson'] for squash in [True, False]],
+               'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in
+                           [True, False]]}
 test_data = [
     (batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, kwargs, share_weight, num_iterations)
     for batch_size in [1, 2] for in_capsules in [1, 5, 10] for out_capsules in [1, 4] for in_length in
