@@ -89,8 +89,8 @@ import capsule_layer.functional as F
 x = torch.randn(64, 5, 64, 8)
 if torch.cuda.is_available():
     x = x.cuda()
-# similarity options: ['cosine', 'standardized_cosine', 'tonimoto', 'pearson']
-y = F.k_means_routing(Variable(x), num_iterations=100, similarity='tonimoto')
+# similarity options: ['cosine', 'tonimoto', 'pearson']
+y = F.k_means_routing(Variable(x), num_iterations=100, similarity='tonimoto', squash=False)
 ```
 * DBSCAN routing
 ```python
