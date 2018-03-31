@@ -8,9 +8,13 @@ from torch.autograd import Variable, gradcheck
 import capsule_layer as CL
 from capsule_layer import CapsuleConv2d
 
-kwargs_data = {'dynamic': [{'cum': True}, {'cum': False}],
-               'k_means': [{'similarity': 'cosine'}, {'similarity': 'standardized_cosine'}, {'similarity': 'tonimoto'},
-                           {'similarity': 'pearson'}], 'db_scan': [{'distance': 'euclidean'}]}
+kwargs_data = {
+    'dynamic': [{'cum': True, 'squash': True}, {'cum': True, 'squash': False}, {'cum': False, 'squash': True},
+                {'cum': False, 'squash': False}],
+    'k_means': [{'similarity': 'cosine', 'squash': True}, {'similarity': 'cosine', 'squash': False},
+                {'similarity': 'tonimoto', 'squash': True}, {'similarity': 'tonimoto', 'squash': False},
+                {'similarity': 'pearson', 'squash': True}, {'similarity': 'pearson', 'squash': False}],
+    'db_scan': [{'distance': 'euclidean', 'squash': True}, {'distance': 'euclidean', 'squash': False}]}
 test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length, out_length,
               stride, padding, routing_type, kwargs, num_iterations) for batch_size in [1, 3] for height in [5, 12] for
              width in

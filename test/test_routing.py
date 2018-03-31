@@ -5,8 +5,13 @@ from torch.autograd import Variable
 
 from capsule_layer.functional import dynamic_routing, k_means_routing, db_scan_routing
 
-kwargs_data = {'dynamic': [True, False], 'k_means': ['cosine', 'standardized_cosine', 'tonimoto', 'pearson'],
-               'db_scan': ['euclidean']}
+kwargs_data = {
+    'dynamic': [{'cum': True, 'squash': True}, {'cum': True, 'squash': False}, {'cum': False, 'squash': True},
+                {'cum': False, 'squash': False}],
+    'k_means': [{'similarity': 'cosine', 'squash': True}, {'similarity': 'cosine', 'squash': False},
+                {'similarity': 'tonimoto', 'squash': True}, {'similarity': 'tonimoto', 'squash': False},
+                {'similarity': 'pearson', 'squash': True}, {'similarity': 'pearson', 'squash': False}],
+    'db_scan': [{'distance': 'euclidean', 'squash': True}, {'distance': 'euclidean', 'squash': False}]}
 routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing, 'db_scan': db_scan_routing}
 
 test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, kwargs, num_iterations) for batch_size
@@ -19,6 +24,6 @@ test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, k
                          test_data)
 def test_routing(batch_size, in_capsules, out_capsules, out_length, routing_type, kwargs, num_iterations):
     x = torch.randn(batch_size, out_capsules, in_capsules, out_length).double()
-    y_cpu = routing_funcs[routing_type](Variable(x), num_iterations, kwargs)
-    y_cuda = routing_funcs[routing_type](Variable(x.cuda()), num_iterations, kwargs)
+    y_cpu = routing_funcs[routing_type](Variable(x), num_iterations, **kwargs)
+    y_cuda = routing_funcs[routing_type](Variable(x.cuda()), num_iterations, **kwargs)
     assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist())
