@@ -16,6 +16,10 @@ To update:
 ```
 pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
+If you want to install the dev branch(which flaser function has the value of 1.0):
+```
+pip install git+https://github.com/leftthomas/CapsuleLayer.git@dev
+```
 
 ## Examples
 ### CapsuleConv2d
