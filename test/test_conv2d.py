@@ -8,8 +8,7 @@ from torch.autograd import Variable, gradcheck
 import capsule_layer as CL
 from capsule_layer import CapsuleConv2d
 
-kwargs_data = {'dynamic': [{'squash': squash} for squash in [True, False]],
-               'k_means': [{'similarity': similarity, 'squash': squash} for similarity in
+kwargs_data = {'k_means': [{'similarity': similarity, 'squash': squash} for similarity in
                            ['cosine', 'tonimoto', 'pearson'] for squash in [True, False]],
                'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in
                            [True, False]]}
@@ -18,7 +17,7 @@ test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_
              width in
              [5, 12] for in_length in [1, 3] for out_length in [1, 3] for kernel_size_h in [1, 3] for kernel_size_w in
              [1, 3] for in_channels in [1 * in_length, 3 * in_length] for out_channels in [3 * out_length] for stride in
-             [1, 2] for padding in [0, 1] for routing_type in ['dynamic', 'k_means', 'db_scan']
+             [1, 2] for padding in [0, 1] for routing_type in ['k_means', 'db_scan']
              for kwargs in kwargs_data[routing_type] for num_iterations in [1, 3, 4]]
 
 
