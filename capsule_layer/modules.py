@@ -25,7 +25,7 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type
-           -- options: ['dynamic', 'k_means', 'db_scan']
+           -- options: ['k_means', 'db_scan']
         num_iterations (int, optional): number of routing iterations
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -69,7 +69,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 routing_type='dynamic', num_iterations=3, **kwargs):
+                 routing_type='k_means', num_iterations=3, **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -115,7 +115,7 @@ class CapsuleLinear(nn.Module):
          in_capsules (int, optional): number of input capsules
          share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
-            -- options: ['dynamic', 'k_means', 'db_scan']
+            -- options: ['k_means', 'db_scan']
          num_iterations (int, optional): number of routing iterations
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -147,7 +147,7 @@ class CapsuleLinear(nn.Module):
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='dynamic', num_iterations=3, **kwargs):
+                 routing_type='k_means', num_iterations=3, **kwargs):
         super(CapsuleLinear, self).__init__()
         self.out_capsules = out_capsules
         self.in_capsules = in_capsules

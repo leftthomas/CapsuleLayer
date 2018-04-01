@@ -1,8 +1,7 @@
-import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='dynamic', num_iterations=3, **kwargs):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 6:
@@ -27,7 +26,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='dynamic', nu
     raise NotImplementedError('CapsuleConv2d is not implemented.')
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num_iterations=3, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -52,30 +51,14 @@ def capsule_linear(input, weight, share_weight=True, routing_type='dynamic', num
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
-    if routing_type == 'dynamic':
+    if routing_type == 'k_means':
         # [batch_size, out_capsules, out_length]
-        out = dynamic_routing(priors, num_iterations, **kwargs)
-    elif routing_type == 'k_means':
         out = k_means_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'db_scan':
         out = db_scan_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
-
-
-def dynamic_routing(input, num_iterations=3, squash=True):
-    logits = torch.zeros_like(input)
-    for r in range(num_iterations):
-        probs = F.softmax(logits, dim=1)
-        output = (probs * input).sum(dim=-2, keepdim=True)
-        if r != num_iterations - 1:
-            output = flaser(output)
-            logits = logits + (input * output).sum(dim=-1, keepdim=True)
-    if squash:
-        return flaser(output).squeeze(dim=-2)
-    else:
-        return output.squeeze(dim=-2)
 
 
 def k_means_routing(input, num_iterations=3, similarity='cosine', squash=True):
