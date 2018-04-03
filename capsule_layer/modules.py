@@ -90,7 +90,7 @@ class CapsuleConv2d(nn.Module):
         self.num_iterations = num_iterations
         self.kwargs = kwargs
         self.weight = Parameter(
-            torch.randn(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
+            torch.rand(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations,
@@ -165,7 +165,7 @@ class CapsuleLinear(nn.Module):
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                self.weight = Parameter(torch.randn(out_capsules, in_capsules, out_length, in_length))
+                self.weight = Parameter(torch.rand(out_capsules, in_capsules, out_length, in_length))
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
