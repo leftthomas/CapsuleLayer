@@ -16,10 +16,6 @@ To update:
 ```
 pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```
-If you want to install the dynamic branch(which has dynamic routing on CapsuleLinear):
-```
-pip install git+https://github.com/leftthomas/CapsuleLayer.git@dynamic
-```
 
 ## Examples
 ### CapsuleConv2d
