@@ -101,6 +101,6 @@ def pearson_similarity(x1, x2, dim=-1, eps=1e-8):
 
 def flaser(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
-    scale = norm / (0.5 + norm ** 2)
+    scale = norm / (1 + norm ** 2)
     return scale * input
 
