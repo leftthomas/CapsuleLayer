@@ -11,7 +11,6 @@ from sklearn.preprocessing import StandardScaler
 def my_DBSCAN(data, epsilon, minPts):
     # epsilon is the neighbourhood distance
     # minPts is the  minimum number of points required to form a cluster   (required density)
-    color = ['r', 'g', 'b', 'y', 'c', 'm', 'k', 'w']
     # array to keep track of visited nodes (Size of this array will be equal to number of datapoints)
     visited = []
     clusters = {}
@@ -29,7 +28,6 @@ def my_DBSCAN(data, epsilon, minPts):
                     clus.append(data[n])
 
             # if length of clus is greater than minPts, then add it to clusters{} else drop it
-
             if len(clus) >= minPts:
                 print(len(clus))
                 print("Yes! Lets form a cluster")
@@ -65,8 +63,7 @@ def my_DBSCAN(data, epsilon, minPts):
 if __name__ == '__main__':
     # Generate sample data
     centers = [[1, 1], [-1, -1], [1, -1]]
-    X, labels_true = make_blobs(n_samples=750, centers=centers, cluster_std=0.4,
-                                random_state=0)
+    X, labels_true = make_blobs(n_samples=750, centers=centers, cluster_std=0.4, random_state=0)
 
     X = StandardScaler().fit_transform(X)
 
