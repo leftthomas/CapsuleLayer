@@ -10,37 +10,37 @@ from sklearn.preprocessing import StandardScaler
 
 def my_DBSCAN(data, epsilon, minPts):
     # epsilon is the neighbourhood distance
-    # minPts is the  minimum number of points required to form a cluster   (required density)
-    # array to keep track of visited nodes (Size of this array will be equal to number of datapoints)
+    # minPts is the  minimum number of nodes required to form a cluster
+    # array to keep track of visited nodes
     visited = []
     clusters = {}
-    clus_num = 0
-    # for each datapoint in database
+    cluster_num = 0
+    # for each node in database
     for i in range(0, data.shape[0]):
         if data[i] not in np.array(visited):
             visited.append(data[i])
-            clus = []
+            cluster = []
 
-            # now we need to calculate the distance between this ith datapoint and all other datapoints
+            # now we need to calculate the distance between this ith node and all other nodes
             for n in range(0, data.shape[0]):
-                # if distance is less than epsilon then we add this datapoint to cluster
+                # if distance is less than epsilon then we add this node to cluster
                 if LA.norm(data[i] - data[n]) <= epsilon:
-                    clus.append(data[n])
+                    cluster.append(data[n])
 
-            # if length of clus is greater than minPts, then add it to clusters{} else drop it
-            if len(clus) >= minPts:
-                print(len(clus))
+            # if length of cluster is greater than minPts, then add it to clusters
+            if len(cluster) >= minPts:
+                print(len(cluster))
                 print("Yes! Lets form a cluster")
                 # expanding the cluster
-                for point in clus:
+                for point in cluster:
                     if point not in np.array(visited):
                         visited.append(point)
                         for n in range(0, data.shape[0]):
-                            # if distance between point and this nth datapoint is less than epsilon
-                            if LA.norm(data[n] - point) <= epsilon and data[n] not in np.array(clus):
-                                clus.append(data[n])
-                clusters[clus_num] = clus
-                clus_num = clus_num + 1
+                            # if distance between point and this nth node is less than epsilon
+                            if LA.norm(data[n] - point) <= epsilon and data[n] not in np.array(cluster):
+                                cluster.append(data[n])
+                clusters[cluster_num] = cluster
+                cluster_num += 1
 
     fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(1, 2, 1)
@@ -53,8 +53,8 @@ def my_DBSCAN(data, epsilon, minPts):
     ax.set_title('Clustered Data')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
-    for iter in clusters.keys():
-        ax.scatter(np.array(clusters[iter])[:, 0], np.array(clusters[iter])[:, 1])
+    for key in clusters.keys():
+        ax.scatter(np.array(clusters[key])[:, 0], np.array(clusters[key])[:, 1])
 
     plt.show()
     return clusters
