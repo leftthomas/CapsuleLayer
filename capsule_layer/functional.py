@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 
 
@@ -51,14 +52,30 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
-    if routing_type == 'k_means':
+    if routing_type == 'dynamic':
         # [batch_size, out_capsules, out_length]
+        out = dynamic_routing(priors, num_iterations, **kwargs)
+    elif routing_type == 'k_means':
         out = k_means_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'db_scan':
         out = db_scan_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
+
+
+def dynamic_routing(input, num_iterations=3, squash=True):
+    logits = torch.zeros_like(input)
+    for r in range(num_iterations):
+        probs = F.softmax(logits, dim=1)
+        output = (probs * input).sum(dim=-2, keepdim=True)
+        if r != num_iterations - 1:
+            output = flaser(output)
+            logits = logits + (input * output).sum(dim=-1, keepdim=True)
+    if squash:
+        return flaser(output).squeeze(dim=-2)
+    else:
+        return output.squeeze(dim=-2)
 
 
 def k_means_routing(input, num_iterations=3, similarity='cosine', squash=True):

@@ -3,17 +3,19 @@ import torch
 from pytest import approx
 from torch.autograd import Variable
 
-from capsule_layer.functional import k_means_routing, db_scan_routing
+from capsule_layer.functional import dynamic_routing, k_means_routing, db_scan_routing
 
-kwargs_data = {'k_means': [{'similarity': similarity, 'squash': squash} for similarity in
-                           ['cosine', 'tonimoto', 'pearson'] for squash in [True, False]],
-               'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in
-                           [True, False]]}
-routing_funcs = {'k_means': k_means_routing, 'db_scan': db_scan_routing}
+kwargs_data = {
+    'dynamic': [{'squash': squash} for squash in [True, False]],
+    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['cosine', 'tonimoto', 'pearson'] for
+                squash in [True, False]],
+    'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in [True, False]]
+}
+routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing, 'db_scan': db_scan_routing}
 
 test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, kwargs, num_iterations) for batch_size
              in [1, 2] for out_capsules in [1, 5, 10] for in_capsules in [1, 4, 20] for out_length in [1, 8, 16] for
-             routing_type in ['k_means', 'db_scan'] for kwargs in kwargs_data[routing_type]
+             routing_type in ['dynamic', 'k_means', 'db_scan'] for kwargs in kwargs_data[routing_type]
              for num_iterations in [1, 4, 50]]
 
 

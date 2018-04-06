@@ -25,7 +25,7 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type
-           -- options: ['k_means', 'db_scan']
+           -- options: ['dynamic', 'k_means', 'db_scan']
         num_iterations (int, optional): number of routing iterations
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -117,7 +117,7 @@ class CapsuleLinear(nn.Module):
          in_capsules (int, optional): number of input capsules
          share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
-            -- options: ['k_means', 'db_scan']
+            -- options: ['dynamic', 'k_means', 'db_scan']
          num_iterations (int, optional): number of routing iterations
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -141,7 +141,7 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
-         >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'k_means', num_iterations=5)
+         >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'dynamic', num_iterations=5)
          >>> input = Variable(torch.randn(5, 20, 8))
          >>> output = m(input)
          >>> print(output.size())

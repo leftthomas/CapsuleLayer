@@ -28,7 +28,7 @@ w = torch.randn(2, 2, 3, 5, 8, 4)
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['k_means', 'db_scan']
+# routing_type options: ['dynamic', 'k_means', 'db_scan']
 y = capsule_cov2d(Variable(x), Variable(w), stride=1, padding=1, routing_type='k_means')
 ```
 or with modules interface:
@@ -54,8 +54,8 @@ w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['k_means', 'db_scan']
-y = capsule_linear(Variable(x), Variable(w), share_weight=True, routing_type='db_scan')
+# routing_type options: ['dynamic', 'k_means', 'db_scan']
+y = capsule_linear(Variable(x), Variable(w), share_weight=True, routing_type='dynamic')
 ```
 or with modules interface:
 ```python
@@ -63,7 +63,7 @@ import torch
 from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
 x = torch.randn(64, 128, 8)
-module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='db_scan', num_iterations=3)
+module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3)
 if torch.cuda.is_available():
     x = x.cuda()
     module.cuda()
@@ -71,6 +71,16 @@ y = module(Variable(x))
 ```
 
 ### Routing Algorithm
+* dynamic routing
+```python
+import torch
+from torch.autograd import Variable
+import capsule_layer.functional as F
+x = torch.randn(64, 10, 128, 8)
+if torch.cuda.is_available():
+    x = x.cuda()
+y = F.dynamic_routing(Variable(x), num_iterations=10, squash=False)
+```
 * k-means routing
 ```python
 import torch
