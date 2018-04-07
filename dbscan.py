@@ -55,5 +55,6 @@ if __name__ == '__main__':
     ax.set_ylabel('Y')
     for cluster in clusters:
         ax.scatter(cluster[:, 0], cluster[:, 1])
+        print('center: (' + str(cluster[:, 0].mean()) + ', ' + str(cluster[:, 1].mean()) + ')')
 
     plt.show()
