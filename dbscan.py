@@ -65,14 +65,15 @@ def test_db_scan(data, epsilon=0.2, min_pts=10):
 if __name__ == '__main__':
 
     # Generate sample data
-    centers = [[1, 1], [-1, -1], [1, -1]]
-    X, labels_true = make_blobs(n_samples=750, centers=centers, cluster_std=0.4, random_state=0)
-
-    X = StandardScaler().fit_transform(X)
-
-    X = torch.from_numpy(X)
-
-    clusters = db_scan(X, 0.2, 10)
+    centers1 = [[1, 1], [-1, -1], [1, -1]]
+    centers2 = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+    X1, _ = make_blobs(n_samples=750, centers=centers1, cluster_std=0.4, random_state=0)
+    X2, _ = make_blobs(n_samples=750, centers=centers2, cluster_std=0.4, random_state=0)
+    X1 = StandardScaler().fit_transform(X1)
+    X2 = StandardScaler().fit_transform(X2)
+    X1 = torch.from_numpy(X1)
+    X2 = torch.from_numpy(X2)
+    clusters = db_scan(X1, 0.2, 10)
 
     # fig = plt.figure(figsize=(10, 5))
     # ax = fig.add_subplot(1, 2, 1)
@@ -90,5 +91,5 @@ if __name__ == '__main__':
         print('center: (' + str(cluster[:, 0].mean()) + ', ' + str(cluster[:, 1].mean()) + ')')
 
     # plt.show()
-    clusters = test_db_scan(torch.cat((X.unsqueeze(dim=0), X.unsqueeze(dim=0)), dim=0), 0.2, 10)
+    clusters = test_db_scan(torch.cat((X1.unsqueeze(dim=0), X2.unsqueeze(dim=0)), dim=0), 0.2, 10)
     print(clusters)
