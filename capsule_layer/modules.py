@@ -29,7 +29,7 @@ class CapsuleConv2d(nn.Module):
         num_iterations (int, optional): number of routing iterations
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
-               -- options: ['cosine', 'tonimoto', 'pearson']
+               -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
            - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
                -- options: ['euclidean']
            - squash (bool, optional): squash output capsules or not, it works for all routing
@@ -121,7 +121,7 @@ class CapsuleLinear(nn.Module):
          num_iterations (int, optional): number of routing iterations
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
-                -- options: ['cosine', 'tonimoto', 'pearson']
+                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
             - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
                 -- options: ['euclidean']
             - squash (bool, optional): squash output capsules or not, it works for all routing

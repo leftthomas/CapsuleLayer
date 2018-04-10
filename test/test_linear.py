@@ -10,8 +10,8 @@ from capsule_layer import CapsuleLinear
 
 kwargs_data = {
     'dynamic': [{'squash': squash} for squash in [True, False]],
-    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['cosine', 'tonimoto', 'pearson'] for
-                squash in [True, False]],
+    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['dot', 'cosine', 'tonimoto', 'pearson']
+                for squash in [True, False]],
     'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in [True, False]]
 }
 test_data = [

@@ -7,8 +7,8 @@ from capsule_layer.functional import dynamic_routing, k_means_routing, db_scan_r
 
 kwargs_data = {
     'dynamic': [{'squash': squash} for squash in [True, False]],
-    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['cosine', 'tonimoto', 'pearson'] for
-                squash in [True, False]],
+    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['dot', 'cosine', 'tonimoto', 'pearson']
+                for squash in [True, False]],
     'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in [True, False]]
 }
 routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing, 'db_scan': db_scan_routing}

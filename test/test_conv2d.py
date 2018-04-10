@@ -10,8 +10,8 @@ from capsule_layer import CapsuleConv2d
 
 kwargs_data = {
     'dynamic': [{'squash': squash} for squash in [True, False]],
-    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['cosine', 'tonimoto', 'pearson'] for
-                squash in [True, False]],
+    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['dot', 'cosine', 'tonimoto', 'pearson']
+                for squash in [True, False]],
     'db_scan': [{'distance': distance, 'squash': squash} for distance in ['euclidean'] for squash in [True, False]]
 }
 test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length, out_length,
