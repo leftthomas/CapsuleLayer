@@ -79,7 +79,7 @@ def dynamic_routing(input, num_iterations=3, squash=True):
 
 
 def k_means_routing(input, num_iterations=3, similarity='cosine', squash=True):
-    output = input.mean(dim=-2, keepdim=True)
+    output = input.sum(dim=-2, keepdim=True) / input.size(1)
     for r in range(num_iterations):
         if similarity == 'cosine':
             logits = F.cosine_similarity(input, output, dim=-1).unsqueeze(dim=-1)

@@ -8,6 +8,31 @@ from sklearn.datasets.samples_generator import make_blobs
 from sklearn.preprocessing import StandardScaler
 
 
+def db_scan(data, epsilon=0.2, min_pts=10):
+    visited = []
+    clusters = []
+    for i in range(0, data.shape[0]):
+        if data[i] not in np.array(visited):
+            visited.append(data[i])
+            cluster = []
+
+            for n in range(0, data.shape[0]):
+                if LA.norm(data[i] - data[n]) <= epsilon:
+                    cluster.append(data[n])
+
+            if len(cluster) >= min_pts:
+                print(len(cluster))
+                # expanding the cluster
+                for point in cluster:
+                    if point not in np.array(visited):
+                        visited.append(point)
+                        for n in range(0, data.shape[0]):
+                            if LA.norm(data[n] - point) <= epsilon and data[n] not in np.array(cluster):
+                                cluster.append(data[n])
+                clusters.append(np.array(cluster))
+    return clusters
+
+
 def my_DBSCAN(data, epsilon=0.2, min_pts=10):
     visited = []
     clusters = []
