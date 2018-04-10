@@ -25,13 +25,11 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): Stride of the capsule convolution
         padding (int or tuple, optional): Zero-padding added to both sides of the input
         routing_type (str, optional):  routing algorithm type
-           -- options: ['dynamic', 'k_means', 'db_scan']
+           -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
-           - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
-               -- options: ['euclidean']
            - squash (bool, optional): squash output capsules or not, it works for all routing
 
     Shape:
@@ -117,13 +115,11 @@ class CapsuleLinear(nn.Module):
          in_capsules (int, optional): number of input capsules
          share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional):  routing algorithm type
-            -- options: ['dynamic', 'k_means', 'db_scan']
+            -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
-            - distance (str, optional): metric of distance between capsules, it only works for 'db_scan' routing
-                -- options: ['euclidean']
             - squash (bool, optional): squash output capsules or not, it works for all routing
 
      Shape:

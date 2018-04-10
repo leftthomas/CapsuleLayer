@@ -28,7 +28,7 @@ w = torch.randn(2, 2, 3, 5, 8, 4)
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['dynamic', 'k_means', 'db_scan']
+# routing_type options: ['dynamic', 'k_means']
 y = capsule_cov2d(Variable(x), Variable(w), stride=1, padding=1, routing_type='k_means')
 ```
 or with modules interface:
@@ -54,7 +54,7 @@ w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
     x = x.cuda()
     w = w.cuda()
-# routing_type options: ['dynamic', 'k_means', 'db_scan']
+# routing_type options: ['dynamic', 'k_means']
 y = capsule_linear(Variable(x), Variable(w), share_weight=True, routing_type='dynamic')
 ```
 or with modules interface:
@@ -91,17 +91,6 @@ if torch.cuda.is_available():
     x = x.cuda()
 # similarity options: ['dot', 'cosine', 'tonimoto', 'pearson']
 y = F.k_means_routing(Variable(x), num_iterations=100, similarity='tonimoto')
-```
-* DBSCAN routing
-```python
-import torch
-from torch.autograd import Variable
-import capsule_layer.functional as F
-x = torch.randn(16, 10, 128, 8)
-if torch.cuda.is_available():
-    x = x.cuda()
-# distance options: ['euclidean']
-y = F.db_scan_routing(Variable(x), num_iterations=5, distance='euclidean')
 ```
 
 ### Similarity Algorithm

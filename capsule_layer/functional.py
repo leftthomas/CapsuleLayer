@@ -57,8 +57,6 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         out = dynamic_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'k_means':
         out = k_means_routing(priors, num_iterations, **kwargs)
-    elif routing_type == 'db_scan':
-        out = db_scan_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
@@ -98,11 +96,6 @@ def k_means_routing(input, num_iterations=3, similarity='dot', squash=True):
         return flaser(output).squeeze(dim=-2)
     else:
         return output.squeeze(dim=-2)
-
-
-def db_scan_routing(input, num_iterations=3, distance='euclidean', squash=True):
-    # TODO
-    raise NotImplementedError('DB SCAN routing algorithm is not implemented.')
 
 
 def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):
