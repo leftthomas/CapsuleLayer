@@ -62,7 +62,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     return out
 
 
-def dynamic_routing(input, num_iterations=3, squash=True):
+def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False):
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
@@ -71,12 +71,18 @@ def dynamic_routing(input, num_iterations=3, squash=True):
             output = flaser(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
     if squash:
-        return flaser(output).squeeze(dim=-2)
+        if return_prob:
+            return flaser(output).squeeze(dim=-2), probs.mean(dim=-1)
+        else:
+            return flaser(output).squeeze(dim=-2)
     else:
-        return output.squeeze(dim=-2)
+        if return_prob:
+            return output.squeeze(dim=-2), probs.mean(dim=-1)
+        else:
+            return output.squeeze(dim=-2)
 
 
-def k_means_routing(input, num_iterations=3, similarity='dot', squash=True):
+def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, return_prob=False):
     output = input.sum(dim=-2, keepdim=True) / input.size(1)
     for r in range(num_iterations):
         if similarity == 'dot':
@@ -93,9 +99,15 @@ def k_means_routing(input, num_iterations=3, similarity='dot', squash=True):
         probs = F.softmax(logits, dim=1)
         output = (probs * input).sum(dim=-2, keepdim=True)
     if squash:
-        return flaser(output).squeeze(dim=-2)
+        if return_prob:
+            return flaser(output).squeeze(dim=-2), probs.squeeze(dim=-1)
+        else:
+            return flaser(output).squeeze(dim=-2)
     else:
-        return output.squeeze(dim=-2)
+        if return_prob:
+            return output.squeeze(dim=-2), probs.squeeze(dim=-1)
+        else:
+            return output.squeeze(dim=-2)
 
 
 def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):
