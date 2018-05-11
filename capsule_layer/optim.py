@@ -1,69 +1,50 @@
-from bisect import bisect_right
+from torch.nn import Module
 
-from torch.optim import Optimizer
-
-
-class _LRScheduler(object):
-    def __init__(self, optimizer, last_epoch=-1):
-        if not isinstance(optimizer, Optimizer):
-            raise TypeError('{} is not an Optimizer'.format(
-                type(optimizer).__name__))
-        self.optimizer = optimizer
-        if last_epoch == -1:
-            for group in optimizer.param_groups:
-                group.setdefault('initial_lr', group['lr'])
-        else:
-            for i, group in enumerate(optimizer.param_groups):
-                if 'initial_lr' not in group:
-                    raise KeyError("param 'initial_lr' is not specified "
-                                   "in param_groups[{}] when resuming an optimizer".format(i))
-        self.base_lrs = list(map(lambda group: group['initial_lr'], optimizer.param_groups))
-        self.step(last_epoch + 1)
-        self.last_epoch = last_epoch
-
-    def get_lr(self):
-        raise NotImplementedError
-
-    def step(self, epoch=None):
-        if epoch is None:
-            epoch = self.last_epoch + 1
-        self.last_epoch = epoch
-        for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
-            param_group['lr'] = lr
+import capsule_layer as CL
 
 
-class MultiStepLR(_LRScheduler):
-    """Set the learning rate of each parameter group to the initial lr decayed
-    by gamma once the number of epoch reaches one of the milestones. When
-    last_epoch=-1, sets initial lr as lr.
+class MultiStepRI(object):
+    r"""Set the routing iterations of model which contains capsule layer to the initial iterations added
+    by addition once the number of epoch reaches one of the milestones.
 
     Args:
-        optimizer (Optimizer): Wrapped optimizer.
-        milestones (list): List of epoch indices. Must be increasing.
-        gamma (float): Multiplicative factor of learning rate decay.
-            Default: 0.1.
-        last_epoch (int): The index of last epoch. Default: -1.
+        model (Module): Wrapped model
+        milestones (list): List of epoch indices. Must be increasing
+        addition (int): Additive factor of routing iterations addition
+        verbose (bool): If ``True``, prints a message to stdout for each update
 
-    Example:
-        >>> # Assuming optimizer uses lr = 0.05 for all groups
-        >>> # lr = 0.05     if epoch < 30
-        >>> # lr = 0.005    if 30 <= epoch < 80
-        >>> # lr = 0.0005   if epoch >= 80
-        >>> scheduler = MultiStepLR(optimizer, milestones=[30,80], gamma=0.1)
-        >>> for epoch in range(100):
-        >>>     scheduler.step()
-        >>>     train(...)
-        >>>     validate(...)
+    Examples::
+        >>> # Assuming model uses iterations = 3
+        >>> # rl = 3    if epoch < 10
+        >>> # rl = 5    if 10 <= epoch < 30
+        >>> # rl = 7    if epoch >= 30
+        >>> from capsule_layer import CapsuleLinear
+        >>> model = CapsuleLinear(30, 8, 16, 20, share_weight=False)
+        >>> scheduler = MultiStepRI(model, milestones=[10, 30], addition=2, verbose=False)
+        >>> for epoch in range(50):
+        ...     scheduler.step()
     """
 
-    def __init__(self, optimizer, milestones, gamma=0.1, last_epoch=-1):
+    def __init__(self, model, milestones, addition=2, verbose=False):
         if not list(milestones) == sorted(milestones):
-            raise ValueError('Milestones should be a list of'
-                             ' increasing integers. Got {}', milestones)
+            raise ValueError('Milestones should be a list of increasing integers. Got {}', milestones)
         self.milestones = milestones
-        self.gamma = gamma
-        super(MultiStepLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self):
-        return [base_lr * self.gamma ** bisect_right(self.milestones, self.last_epoch)
-                for base_lr in self.base_lrs]
+        if not isinstance(model, Module):
+            raise TypeError('{} is not an Module'.format(type(model).__name__))
+        self.model = model
+
+        self.addition = addition
+        self.verbose = verbose
+        self.last_epoch = 0
+
+    def step(self):
+        epoch = self.last_epoch + 1
+        if epoch in self.milestones:
+            for name, module in self.model.named_modules():
+                if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
+                    module.num_iterations += self.addition
+                    if self.verbose:
+                        print('Epoch {}: increasing module {}\' routing iterations to {}.'.
+                              format(epoch, name if name != '' else type(module).__name__, module.num_iterations))
+        self.last_epoch = epoch
