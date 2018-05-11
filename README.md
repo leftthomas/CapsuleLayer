@@ -119,6 +119,16 @@ if torch.cuda.is_available():
 y = F.pearson_similarity(Variable(x1), Variable(x2), dim=1)
 ```
 
+### Routing Iterations Scheduler
+```python
+from capsule_layer import CapsuleLinear
+from capsule_layer.optim import MultiStepRI
+model = CapsuleLinear(3, 4, 7, num_iterations=2)
+scheduler = MultiStepRI(model, milestones=[5, 20], addition=3, verbose=True)
+for epoch in range(50):
+    scheduler.step()
+```
+
 ## Contribution
 Any contributions to Capsule Layer are welcome!
 
