@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, **kwargs):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 6:
@@ -20,6 +20,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
         raise ValueError('Expected input tensor has the same in_channels as weight tensor, got in_channels {} in input '
                          'tensor, in_channels {} in weight tensor.'.format(input.size(-1),
                                                                            weight.size(1) * weight.size(-1)))
+    if dropout < 0 or dropout > 1:
+        raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
     # TODO
     # two method
     # 1. softmax between lower layer capsules, sum the prob of capsule_i to 1
@@ -27,7 +29,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
     raise NotImplementedError('CapsuleConv2d is not implemented.')
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -47,6 +49,8 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     if input.size(-1) != weight.size(-1):
         raise ValueError('Expected input tensor has the same in_length as weight tensor, got in_length {} '
                          'in input tensor, in_length {} in weight tensor.'.format(input.size(-1), weight.size(-1)))
+    if dropout < 0 or dropout > 1:
+        raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
