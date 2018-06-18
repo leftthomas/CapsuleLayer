@@ -126,6 +126,10 @@ from capsule_layer.optim import MultiStepRI
 model = CapsuleLinear(3, 4, 7, num_iterations=2)
 scheduler = MultiStepRI(model, milestones=[5, 20], addition=3, verbose=True)
 for epoch in range(50):
+    model.train()
+    ...
+    model.eval()
+    ...
     scheduler.step()
 ```
 

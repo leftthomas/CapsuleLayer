@@ -1,8 +1,10 @@
 import torch
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
+def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, dropout=0,
+                  training=False, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 6:
@@ -29,7 +31,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
     raise NotImplementedError('CapsuleConv2d is not implemented.')
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0,
+                   training=False, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -51,6 +54,15 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
                          'in input tensor, in_length {} in weight tensor.'.format(input.size(-1), weight.size(-1)))
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
+
+    if dropout != 0 and training:
+        noise = input.data.new(input.size()[:-1])
+        noise.bernoulli_(dropout)
+        noise = Variable(noise.byte().unsqueeze(dim=-1))
+        input.masked_fill_(noise, 0)
+        # if 1-dropout == 0, the result will be inf, don't make it happen
+        input.div_(1 - dropout)
+
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
@@ -131,4 +143,3 @@ def flaser(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (1 + norm ** 2)
     return scale * input
-

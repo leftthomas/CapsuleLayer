@@ -50,7 +50,7 @@ class CapsuleConv2d(nn.Module):
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ------------------------------------------------------------------------------------------------
     Examples::
-
+        >>> import torch
         >>> from capsule_layer import CapsuleConv2d
         >>> from torch.autograd import Variable
         >>> # With square kernels and equal stride
@@ -98,7 +98,7 @@ class CapsuleConv2d(nn.Module):
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations,
-                                self.dropout, **self.kwargs)
+                                self.dropout, self.training, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -140,6 +140,7 @@ class CapsuleLinear(nn.Module):
               (out_capsules, in_capsules, out_length, in_length)
 
      Examples::
+         >>> import torch
          >>> from capsule_layer import CapsuleLinear
          >>> from torch.autograd import Variable
          >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'dynamic', num_iterations=5)
@@ -178,7 +179,7 @@ class CapsuleLinear(nn.Module):
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
-                                 self.dropout, **self.kwargs)
+                                 self.dropout, self.training, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
