@@ -56,12 +56,12 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
     if dropout != 0 and training:
-        noise = input.data.new(input.size()[:-1])
-        noise.bernoulli_(dropout)
+        noise = input.data.new(torch.ones(input.size()[:-1]) * dropout)
+        noise = noise.bernoulli()
         noise = Variable(noise.byte().unsqueeze(dim=-1))
         input.masked_fill_(noise, 0)
         # if 1-dropout == 0, the result will be inf, don't make it happen
-        input.div_(1 - dropout)
+        input = input.div(1 - dropout)
 
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
