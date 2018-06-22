@@ -5,12 +5,12 @@ import capsule_layer as CL
 
 class MultiStepRI(object):
     r"""Set the routing iterations of model which contains capsule layer to the initial iterations added
-    by addition once the number of epoch reaches one of the milestones.
+    by addition once the number of epoch reaches one of the milestones or the given routing iterations.
 
     Args:
         model (Module): Wrapped model
         milestones (list): List of epoch indices. Must be increasing
-        addition (int): Additive factor of routing iterations addition
+        addition (int or list): Additive scalar of routing iterations addition or list of routing iterations
         verbose (bool): If ``True``, prints a message to stdout for each update
 
     Examples::
@@ -26,25 +26,90 @@ class MultiStepRI(object):
     """
 
     def __init__(self, model, milestones, addition=2, verbose=False):
-        if not list(milestones) == sorted(milestones):
+        if not milestones == sorted(milestones):
             raise ValueError('Milestones should be a list of increasing integers. Got {}', milestones)
         self.milestones = milestones
+
+        if isinstance(addition, list):
+            if len(addition) != len(milestones):
+                raise ValueError("expected {} additions, got {}".format(len(milestones), len(addition)))
+        self.addition = addition
 
         if not isinstance(model, Module):
             raise TypeError('{} is not an Module'.format(type(model).__name__))
         self.model = model
 
-        self.addition = addition
         self.verbose = verbose
         self.last_epoch = 0
+        self.current_index = 0
 
     def step(self):
         epoch = self.last_epoch + 1
         if epoch in self.milestones:
             for name, module in self.model.named_modules():
                 if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
-                    module.num_iterations += self.addition
+                    if isinstance(self.addition, list):
+                        module.num_iterations = self.addition[self.current_index]
+                    else:
+                        module.num_iterations += self.addition
                     if self.verbose:
                         print('Epoch {}: increasing module {}\' routing iterations to {}.'.
                               format(epoch, name if name != '' else type(module).__name__, module.num_iterations))
+            self.current_index += 1
+        self.last_epoch = epoch
+
+
+class MultiStepDropout(object):
+    r"""Set the dropout of model which contains capsule layer to the initial dropout added
+    by addition once the number of epoch reaches one of the milestones or the given dropout.
+
+    Args:
+        model (Module): Wrapped model
+        milestones (list): List of epoch indices. Must be increasing
+        addition (float or list): Additive scalar of dropout addition or list of dropouts
+        verbose (bool): If ``True``, prints a message to stdout for each update
+
+    Examples::
+        >>> # Assuming model uses dropout = 0.1
+        >>> # rl = 0.1    if epoch < 10
+        >>> # rl = 0.2    if 10 <= epoch < 30
+        >>> # rl = 0.3    if epoch >= 30
+        >>> from capsule_layer import CapsuleLinear
+        >>> model = CapsuleLinear(30, 8, 16, 20, share_weight=False)
+        >>> scheduler = MultiStepDropout(model, milestones=[10, 30], addition=0.1, verbose=False)
+        >>> for epoch in range(50):
+        ...     scheduler.step()
+    """
+
+    def __init__(self, model, milestones, addition=0.2, verbose=False):
+        if not milestones == sorted(milestones):
+            raise ValueError('Milestones should be a list of increasing integers. Got {}', milestones)
+        self.milestones = milestones
+
+        if isinstance(addition, list):
+            if len(addition) != len(milestones):
+                raise ValueError("expected {} additions, got {}".format(len(milestones), len(addition)))
+        self.addition = addition
+
+        if not isinstance(model, Module):
+            raise TypeError('{} is not an Module'.format(type(model).__name__))
+        self.model = model
+
+        self.verbose = verbose
+        self.last_epoch = 0
+        self.current_index = 0
+
+    def step(self):
+        epoch = self.last_epoch + 1
+        if epoch in self.milestones:
+            for name, module in self.model.named_modules():
+                if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
+                    if isinstance(self.addition, list):
+                        module.dropout = self.addition[self.current_index]
+                    else:
+                        module.dropout += self.addition
+                    if self.verbose:
+                        print('Epoch {}: increasing module {}\' dropout to {}.'.
+                              format(epoch, name if name != '' else type(module).__name__, module.dropout))
+            self.current_index += 1
         self.last_epoch = epoch
