@@ -74,6 +74,8 @@ class CapsuleConv2d(nn.Module):
             raise ValueError('Expected in_channels must be divisible by in_length.')
         if out_channels % out_length != 0:
             raise ValueError('Expected out_channels must be divisible by out_length.')
+        if num_iterations < 1:
+            raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
         if dropout < 0 or dropout > 1:
             raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
         kernel_size = _pair(kernel_size)
@@ -153,6 +155,8 @@ class CapsuleLinear(nn.Module):
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
                  routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
         super(CapsuleLinear, self).__init__()
+        if num_iterations < 1:
+            raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
         if dropout < 0 or dropout > 1:
             raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 

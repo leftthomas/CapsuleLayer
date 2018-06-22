@@ -22,6 +22,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
         raise ValueError('Expected input tensor has the same in_channels as weight tensor, got in_channels {} in input '
                          'tensor, in_channels {} in weight tensor.'.format(input.size(-1),
                                                                            weight.size(1) * weight.size(-1)))
+    if num_iterations < 1:
+        raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
     # TODO
@@ -52,6 +54,8 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     if input.size(-1) != weight.size(-1):
         raise ValueError('Expected input tensor has the same in_length as weight tensor, got in_length {} '
                          'in input tensor, in_length {} in weight tensor.'.format(input.size(-1), weight.size(-1)))
+    if num_iterations < 1:
+        raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
@@ -79,6 +83,8 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
 
 
 def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False):
+    if num_iterations < 1:
+        raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=1)
@@ -99,6 +105,8 @@ def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False):
 
 
 def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, return_prob=False):
+    if num_iterations < 1:
+        raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     output = input.sum(dim=-2, keepdim=True) / input.size(1)
     for r in range(num_iterations):
         if similarity == 'dot':
