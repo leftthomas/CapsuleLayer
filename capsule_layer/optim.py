@@ -10,7 +10,7 @@ class MultiStepRI(object):
     Args:
         model (Module): Wrapped model
         milestones (list): List of epoch indices. Must be increasing
-        addition (int or list): Additive scalar of routing iterations addition or list of routing iterations
+        addition (int or list): Additive scalar or list of routing iterations addition
         verbose (bool): If ``True``, prints a message to stdout for each update
 
     Examples::
@@ -49,7 +49,7 @@ class MultiStepRI(object):
             for name, module in self.model.named_modules():
                 if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
                     if isinstance(self.addition, list):
-                        module.num_iterations = self.addition[self.current_index]
+                        module.num_iterations += self.addition[self.current_index]
                     else:
                         module.num_iterations += self.addition
                     if self.verbose:
@@ -66,7 +66,7 @@ class MultiStepDropout(object):
     Args:
         model (Module): Wrapped model
         milestones (list): List of epoch indices. Must be increasing
-        addition (float or list): Additive scalar of dropout addition or list of dropouts
+        addition (float or list): Additive scalar or list of dropout addition
         verbose (bool): If ``True``, prints a message to stdout for each update
 
     Examples::
@@ -105,7 +105,7 @@ class MultiStepDropout(object):
             for name, module in self.model.named_modules():
                 if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
                     if isinstance(self.addition, list):
-                        module.dropout = self.addition[self.current_index]
+                        module.dropout += self.addition[self.current_index]
                     else:
                         module.dropout += self.addition
                     if self.verbose:

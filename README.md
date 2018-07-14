@@ -126,7 +126,7 @@ from capsule_layer import CapsuleLinear
 from capsule_layer.optim import MultiStepRI
 model = CapsuleLinear(3, 4, 7, num_iterations=2)
 scheduler = MultiStepRI(model, milestones=[5, 20], addition=3, verbose=True)
-# scheduler = MultiStepRI(model, milestones=[5, 20], addition=[5, 8], verbose=True)
+# scheduler = MultiStepRI(model, milestones=[5, 20], addition=[3, 3], verbose=True)
 for epoch in range(30):
     model.train()
     ...
@@ -140,7 +140,7 @@ from capsule_layer import CapsuleLinear
 from capsule_layer.optim import MultiStepDropout
 model = CapsuleLinear(3, 4, 7, dropout=0.1)
 scheduler = MultiStepDropout(model, milestones=[5, 20], addition=0.3, verbose=True)
-# scheduler = MultiStepDropout(model, milestones=[5, 20], addition=[0.4, 0.7], verbose=True)
+# scheduler = MultiStepDropout(model, milestones=[5, 20], addition=[0.3, 0.3], verbose=True)
 for epoch in range(30):
     model.train()
     ...
