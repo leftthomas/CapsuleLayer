@@ -21,102 +21,88 @@ pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 ### CapsuleConv2d
 ```python
 import torch
-from torch.autograd import Variable
 from capsule_layer import capsule_cov2d
 x = torch.randn(4, 8, 28, 50)
 w = torch.randn(2, 2, 3, 5, 8, 4)
 if torch.cuda.is_available():
-    x = x.cuda()
-    w = w.cuda()
+    x, w = x.to('cuda'), w.to('cuda')
 # routing_type options: ['dynamic', 'k_means']
-y = capsule_cov2d(Variable(x), Variable(w), stride=1, padding=1, routing_type='k_means')
+y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='k_means')
 ```
 or with modules interface:
 ```python
 import torch
-from torch.autograd import Variable
 from capsule_layer import CapsuleConv2d
 x = torch.randn(4, 8, 28, 50)
 module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means')
 if torch.cuda.is_available():
-    x = x.cuda()
-    module.cuda()
-y = module(Variable(x))
+    x, module = x.to('cuda'), module.to('cuda')
+y = module(x)
 ```
 
 ### CapsuleLinear
 ```python
 import torch
-from torch.autograd import Variable
 from capsule_layer import capsule_linear
 x = torch.randn(64, 128, 8)
 w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
-    x = x.cuda()
-    w = w.cuda()
+    x, w = x.to('cuda'), w.to('cuda')
 # routing_type options: ['dynamic', 'k_means']
-y = capsule_linear(Variable(x), Variable(w), share_weight=True, routing_type='dynamic', dropout=0.5)
+y = capsule_linear(x, w, share_weight=True, routing_type='dynamic', dropout=0.5)
 ```
 or with modules interface:
 ```python
 import torch
-from torch.autograd import Variable
 from capsule_layer import CapsuleLinear
 x = torch.randn(64, 128, 8)
 module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3, dropout=0.5)
 if torch.cuda.is_available():
-    x = x.cuda()
-    module.cuda()
-y = module(Variable(x))
+    x, module = x.to('cuda'), module.to('cuda')
+y = module(x)
 ```
 
 ### Routing Algorithm
 * dynamic routing
 ```python
 import torch
-from torch.autograd import Variable
 import capsule_layer.functional as F
 x = torch.randn(64, 10, 128, 8)
 if torch.cuda.is_available():
-    x = x.cuda()
-y, prob = F.dynamic_routing(Variable(x), num_iterations=10, squash=False, return_prob=True)
+    x = x.to('cuda')
+y, prob = F.dynamic_routing(x, num_iterations=10, squash=False, return_prob=True)
 ```
 * k-means routing
 ```python
 import torch
-from torch.autograd import Variable
 import capsule_layer.functional as F
 x = torch.randn(64, 5, 64, 8)
 if torch.cuda.is_available():
-    x = x.cuda()
+    x = x.to('cuda')
 # similarity options: ['dot', 'cosine', 'tonimoto', 'pearson']
-y = F.k_means_routing(Variable(x), num_iterations=100, similarity='tonimoto')
+y = F.k_means_routing(x, num_iterations=100, similarity='tonimoto')
 ```
 
 ### Similarity Algorithm
 * tonimoto similarity
 ```python
 import torch
-from torch.autograd import Variable
 import capsule_layer.functional as F
 x1 = torch.randn(64, 16)
 x2 = torch.randn(1, 16)
 if torch.cuda.is_available():
-    x1 = x1.cuda()
-    x2 = x2.cuda()
-y = F.tonimoto_similarity(Variable(x1), Variable(x2), dim=-1)
+    x1, x2 = x1.to('cuda'), x2.to('cuda')
+y = F.tonimoto_similarity(x1, x2, dim=-1)
 ```
 * pearson similarity
 ```python
 import torch
-from torch.autograd import Variable
 import capsule_layer.functional as F
 x1 = torch.randn(32, 8, 16)
 x2 = torch.randn(32, 8, 1)
 if torch.cuda.is_available():
-    x1 = x1.cuda()
-    x2 = x2.cuda()
-y = F.pearson_similarity(Variable(x1), Variable(x2), dim=1)
+    x1, x2 = x1.to('cuda'), x2.to('cuda')
+y = F.pearson_similarity(x1, x2, dim=1)
 ```
 
 ### Dynamic Scheduler

@@ -52,16 +52,15 @@ class CapsuleConv2d(nn.Module):
     Examples::
         >>> import torch
         >>> from capsule_layer import CapsuleConv2d
-        >>> from torch.autograd import Variable
         >>> # With square kernels and equal stride
         >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2)
         >>> # non-square kernels and unequal stride and with padding
         >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
-        >>> input = Variable(torch.randn(20, 16, 20, 50))
+        >>> input = torch.randn(20, 16, 20, 50)
         >>> output = m(input)
         >>> print(output.size())
         torch.Size([20, 24, 9, 24])
-        >>> input = Variable(torch.randn(10, 3, 14, 25))
+        >>> input = torch.randn(10, 3, 14, 25)
         >>> output = m1(input)
         >>> print(output.size())
         torch.Size([10, 16, 10, 25])
@@ -96,7 +95,7 @@ class CapsuleConv2d(nn.Module):
         self.weight = Parameter(
             torch.Tensor(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
 
-        nn.init.xavier_uniform(self.weight)
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations,
@@ -144,9 +143,8 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> import torch
          >>> from capsule_layer import CapsuleLinear
-         >>> from torch.autograd import Variable
          >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'dynamic', num_iterations=5)
-         >>> input = Variable(torch.randn(5, 20, 8))
+         >>> input = torch.randn(5, 20, 8)
          >>> output = m(input)
          >>> print(output.size())
          torch.Size([5, 30, 16])
@@ -179,7 +177,7 @@ class CapsuleLinear(nn.Module):
             else:
                 self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
 
-        nn.init.xavier_uniform(self.weight)
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,

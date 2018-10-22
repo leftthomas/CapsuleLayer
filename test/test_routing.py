@@ -1,7 +1,6 @@
 import pytest
 import torch
 from pytest import approx
-from torch.autograd import Variable
 
 from capsule_layer.functional import dynamic_routing, k_means_routing
 
@@ -22,13 +21,13 @@ test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, k
 @pytest.mark.parametrize('batch_size, out_capsules, in_capsules, out_length, routing_type, kwargs, num_iterations',
                          test_data)
 def test_routing(batch_size, in_capsules, out_capsules, out_length, routing_type, kwargs, num_iterations):
-    x = torch.randn(batch_size, out_capsules, in_capsules, out_length).double()
+    x = torch.randn(batch_size, out_capsules, in_capsules, out_length, dtype=torch.double)
     if kwargs['return_prob']:
-        y_cpu, prob_cpu = routing_funcs[routing_type](Variable(x), num_iterations, **kwargs)
-        y_cuda, prob_cuda = routing_funcs[routing_type](Variable(x.cuda()), num_iterations, **kwargs)
-        assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist())
-        assert prob_cuda.cpu().data.view(-1).tolist() == approx(prob_cpu.data.view(-1).tolist())
+        y_cpu, prob_cpu = routing_funcs[routing_type](x, num_iterations, **kwargs)
+        y_cuda, prob_cuda = routing_funcs[routing_type](x.to('cuda'), num_iterations, **kwargs)
+        assert y_cuda.view(-1).tolist() == approx(y_cpu.view(-1).tolist())
+        assert prob_cuda.view(-1).tolist() == approx(prob_cpu.view(-1).tolist())
     else:
-        y_cpu = routing_funcs[routing_type](Variable(x), num_iterations, **kwargs)
-        y_cuda = routing_funcs[routing_type](Variable(x.cuda()), num_iterations, **kwargs)
-        assert y_cuda.cpu().data.view(-1).tolist() == approx(y_cpu.data.view(-1).tolist())
+        y_cpu = routing_funcs[routing_type](x, num_iterations, **kwargs)
+        y_cuda = routing_funcs[routing_type](x.to('cuda'), num_iterations, **kwargs)
+        assert y_cuda.view(-1).tolist() == approx(y_cpu.view(-1).tolist())

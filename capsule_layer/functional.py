@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, dropout=0,
@@ -9,9 +8,9 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 6:
         raise ValueError('Expected 6D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
-    if input.data.type() != weight.data.type():
+    if input.type() != weight.type():
         raise ValueError('Expected input and weight tensor should be the same type, got {} in '
-                         'input tensor, {} in weight tensor instead.'.format(input.data.type(), weight.data.type()))
+                         'input tensor, {} in weight tensor instead.'.format(input.type(), weight.type()))
     if not input.is_contiguous():
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
     if not weight.is_contiguous():
@@ -41,9 +40,9 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         raise ValueError('Expected 3D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
     if (not share_weight) and (weight.dim() != 4):
         raise ValueError('Expected 4D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
-    if input.data.type() != weight.data.type():
+    if input.type() != weight.type():
         raise ValueError('Expected input and weight tensor should be the same type, got {} in '
-                         'input tensor, {} in weight tensor instead.'.format(input.data.type(), weight.data.type()))
+                         'input tensor, {} in weight tensor instead.'.format(input.type(), weight.type()))
     if not input.is_contiguous():
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
     if not weight.is_contiguous():
@@ -60,9 +59,9 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
     if dropout != 0 and training:
-        noise = input.data.new(input.size()[:-1])
+        noise = input.new_empty(input.size()[:-1])
         noise.bernoulli_(dropout)
-        noise = Variable(noise.byte().unsqueeze(dim=-1))
+        noise = noise.byte().unsqueeze(dim=-1)
         input = input.masked_fill(noise, 0)
         # if 1-dropout == 0, the result will be inf, don't make it happen
         input = input.div(1 - dropout)
