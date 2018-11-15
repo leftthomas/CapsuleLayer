@@ -120,8 +120,7 @@ class CapsuleLinear(nn.Module):
          in_length (int): length of each input capsule
          out_length (int): length of each output capsule
          in_capsules (int, optional): number of input capsules
-         share_weight (str, optional): share weight between capsules or not
-            -- options: ['none', 'in', 'out', 'all']
+         share_weight (bool, optional): whether share weight between input capsules or not
          routing_type (str, optional): routing algorithm type
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
@@ -138,7 +137,7 @@ class CapsuleLinear(nn.Module):
          - Output: (Tensor): (N, out_capsules, out_length)
 
      Attributes:
-         if share_weight && in_capsules == None && :
+         if share_weight:
          - weight (Tensor): the learnable weights of the module of shape
               (out_capsules, out_length, in_length)
         else:
