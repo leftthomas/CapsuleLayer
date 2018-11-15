@@ -9,9 +9,9 @@ import capsule_layer as CL
 from capsule_layer import CapsuleLinear
 
 kwargs_data = {
-    'dynamic': [{'squash': squash} for squash in [True, False]],
-    'k_means': [{'similarity': similarity, 'squash': squash} for similarity in ['dot', 'cosine', 'tonimoto', 'pearson']
-                for squash in [True, False]]
+    'dynamic': [{'squash': squash, 'softmax_dim': softmax_dim} for squash in [True, False] for softmax_dim in [1, 2]],
+    'k_means': [{'similarity': similarity, 'squash': squash, 'softmax_dim': softmax_dim} for similarity in
+                ['dot', 'cosine', 'tonimoto', 'pearson'] for squash in [True, False] for softmax_dim in [1, 2]]
 }
 test_data = [
     (batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, kwargs, share_weight, num_iterations)
