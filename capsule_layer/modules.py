@@ -32,6 +32,8 @@ class CapsuleConv2d(nn.Module):
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
            - squash (bool, optional): squash output capsules or not, it works for all routing
+           - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
+           - softmax_dim (int, optional): specify the softmax dim between capsules, it works for all routing
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -118,8 +120,9 @@ class CapsuleLinear(nn.Module):
          in_length (int): length of each input capsule
          out_length (int): length of each output capsule
          in_capsules (int, optional): number of input capsules
-         share_weight (bool, optional): whether share weight between input capsules or not
-         routing_type (str, optional):  routing algorithm type
+         share_weight (str, optional): share weight between capsules or not
+            -- options: ['none', 'in', 'out', 'all']
+         routing_type (str, optional): routing algorithm type
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
          dropout (float, optional): If non-zero, introduces a dropout layer on the inputs
@@ -127,13 +130,15 @@ class CapsuleLinear(nn.Module):
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
             - squash (bool, optional): squash output capsules or not, it works for all routing
+            - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
+            - softmax_dim (int, optional): specify the softmax dim between capsules, it works for all routing
 
      Shape:
          - Input: (Tensor): (N, in_capsules, in_length)
          - Output: (Tensor): (N, out_capsules, out_length)
 
      Attributes:
-         if share_weight:
+         if share_weight && in_capsules == None && :
          - weight (Tensor): the learnable weights of the module of shape
               (out_capsules, out_length, in_length)
         else:
