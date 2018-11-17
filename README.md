@@ -1,5 +1,5 @@
 # Capsule Layer
-PyTorch Capsule Layer, the `CapsuleConv2d` is still on progress, it's not working now.
+PyTorch Capsule Layer.
 
 ## Requirements
 * [Anaconda](https://www.anaconda.com/download/)

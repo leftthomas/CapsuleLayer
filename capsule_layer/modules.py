@@ -95,7 +95,7 @@ class CapsuleConv2d(nn.Module):
         self.dropout = dropout
         self.kwargs = kwargs
         self.weight = Parameter(
-            torch.Tensor(out_channels // out_length, in_channels // in_length, *kernel_size, out_length, in_length))
+            torch.Tensor(in_channels // in_length, *kernel_size, out_length, in_length))
 
         nn.init.xavier_uniform_(self.weight)
 

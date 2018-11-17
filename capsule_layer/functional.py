@@ -6,8 +6,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
                   training=False, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
-    if weight.dim() != 6:
-        raise ValueError('Expected 6D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
+    if weight.dim() != 5:
+        raise ValueError('Expected 5D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
     if input.type() != weight.type():
         raise ValueError('Expected input and weight tensor should be the same type, got {} in '
                          'input tensor, {} in weight tensor instead.'.format(input.type(), weight.type()))
@@ -17,19 +17,24 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
         raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
     if input.size(1) % weight.size(-1) != 0:
         raise ValueError('Expected in_channels must be divisible by in_length.')
-    if input.size(1) != (weight.size(1) * weight.size(-1)):
+    if input.size(1) != (weight.size(0) * weight.size(-1)):
         raise ValueError('Expected input tensor has the same in_channels as weight tensor, got in_channels {} in input '
                          'tensor, in_channels {} in weight tensor.'.format(input.size(-1),
-                                                                           weight.size(1) * weight.size(-1)))
+                                                                           weight.size(0) * weight.size(-1)))
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
-    # TODO
-    # two method
-    # 1. softmax between lower layer capsules, sum the prob of capsule_i to 1
-    # 2. softmax between higher layer capsules, sum the prob of capsule_j to 1
-    raise NotImplementedError('CapsuleConv2d is not implemented.')
+
+    input = input.view(input.size(0), weight.size(0), weight.size(-1), *input.size()[-2:])
+    input = input.permute(1, 0, 3, 4, 2)
+    input = input.contiguous().view(-1, *input.size()[1:])
+
+    weight = weight.permute(1, 2, 4, 0, 3)
+    weight = weight.contiguous().view(*weight.size()[:-2], -1)
+    F.conv2d(input, weight, stride=stride, padding=padding)
+
+
 
 
 def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0,
@@ -89,13 +94,13 @@ def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False, sof
         probs = F.softmax(logits, dim=softmax_dim)
         output = (probs * input).sum(dim=-2, keepdim=True)
         if r != num_iterations - 1:
-            output = flaser(output)
+            output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
     if squash:
         if return_prob:
-            return flaser(output).squeeze(dim=-2), probs.mean(dim=-1)
+            return _squash(output).squeeze(dim=-2), probs.mean(dim=-1)
         else:
-            return flaser(output).squeeze(dim=-2)
+            return _squash(output).squeeze(dim=-2)
     else:
         if return_prob:
             return output.squeeze(dim=-2), probs.mean(dim=-1)
@@ -123,9 +128,9 @@ def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, retu
         output = (probs * input).sum(dim=-2, keepdim=True)
     if squash:
         if return_prob:
-            return flaser(output).squeeze(dim=-2), probs.squeeze(dim=-1)
+            return _squash(output).squeeze(dim=-2), probs.squeeze(dim=-1)
         else:
-            return flaser(output).squeeze(dim=-2)
+            return _squash(output).squeeze(dim=-2)
     else:
         if return_prob:
             return output.squeeze(dim=-2), probs.squeeze(dim=-1)
@@ -146,7 +151,7 @@ def pearson_similarity(x1, x2, dim=-1, eps=1e-8):
     return F.cosine_similarity(centered_x1, centered_x2, dim=dim, eps=eps).unsqueeze(dim=-1)
 
 
-def flaser(input, dim=-1):
+def _squash(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (1 + norm ** 2)
     return scale * input
