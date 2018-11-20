@@ -39,6 +39,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     out = out.permute(0, 3, 4, 1, 2)
+    # [batch_size, out_channels, out_height, out_width]
     out = out.contiguous().view(out.size(0), -1, *out.size()[-2:])
     return out
 

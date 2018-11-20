@@ -103,6 +103,7 @@ class CapsuleConv2d(nn.Module):
         self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels))
+            nn.init.xavier_uniform_(self.bias)
         else:
             self.bias = None
 
