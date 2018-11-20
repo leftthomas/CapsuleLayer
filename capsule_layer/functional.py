@@ -22,17 +22,24 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
+    batch_size = input.size(0)
     input = input.view(input.size(0), input.size(1) // weight.size(2), weight.size(2), *input.size()[-2:])
     input = input.view(-1, *input.size()[2:])
-    weight = weight.view(-1, *weight.size()[2:])
-    priors = F.conv2d(input, weight, stride=stride, padding=padding, dilation=dilation)
+    priors = F.conv2d(input, weight.view(-1, *weight.size()[2:]), stride=stride, padding=padding, dilation=dilation)
+    # [batch_size, in_capsule_types, out_capsule_types, out_length, out_height, out_width]
+    priors = priors.view(batch_size, priors.size(0) // batch_size, priors.size(1) // weight.size(1), -1,
+                         *priors.size()[-2:])
+    # [batch_size, out_height, out_width, out_capsule_types, in_capsule_types, out_length]
+    priors = priors.permute(0, 4, 5, 2, 1, 3).contiguous()
     if routing_type == 'dynamic':
-        # [batch_size, out_channels, out_height, out_width]
+        # [batch_size, out_height, out_width, out_capsule_types, out_length]
         out = dynamic_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'k_means':
         out = k_means_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
+    out = out.permute(0, 3, 4, 1, 2)
+    out = out.contiguous().view(out.size(0), -1, *out.size()[-2:])
     return out
 
 
@@ -77,7 +84,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     return out
 
 
-def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False, softmax_dim=1):
+def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False, softmax_dim=-3):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     logits = torch.zeros_like(input)
@@ -99,10 +106,10 @@ def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False, sof
             return output.squeeze(dim=-2)
 
 
-def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, return_prob=False, softmax_dim=1):
+def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, return_prob=False, softmax_dim=-3):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-    output = input.sum(dim=-2, keepdim=True) / input.size(1)
+    output = input.sum(dim=-2, keepdim=True) / input.size(-3)
     for r in range(num_iterations):
         if similarity == 'dot':
             logits = (input * F.normalize(output, p=2, dim=-1)).sum(dim=-1, keepdim=True)
