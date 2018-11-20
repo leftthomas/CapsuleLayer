@@ -47,7 +47,8 @@ class MultiStepRI(object):
         epoch = self.last_epoch + 1
         if epoch in self.milestones:
             for name, module in self.model.named_modules():
-                if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
+                if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleConvTranspose2d) or isinstance(
+                        module, CL.CapsuleLinear):
                     if isinstance(self.addition, list):
                         module.num_iterations += self.addition[self.current_index]
                     else:
@@ -103,7 +104,8 @@ class MultiStepDropout(object):
         epoch = self.last_epoch + 1
         if epoch in self.milestones:
             for name, module in self.model.named_modules():
-                if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleLinear):
+                if isinstance(module, CL.CapsuleConv2d) or isinstance(module, CL.CapsuleConvTranspose2d) or isinstance(
+                        module, CL.CapsuleLinear):
                     if isinstance(self.addition, list):
                         module.dropout += self.addition[self.current_index]
                     else:

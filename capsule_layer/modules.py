@@ -124,6 +124,125 @@ class CapsuleConv2d(nn.Module):
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
 
+class CapsuleConvTranspose2d(nn.Module):
+    r"""Applies a 2D capsule convolution over an input signal composed of several input
+    planes.
+
+    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:
+
+        - a single ``int`` -- in which case the same value is used for the height and width dimension
+        - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,
+          and the second `int` for the width dimension
+
+    Args:
+        in_channels (int): number of channels in the input image
+        out_channels (int): number of channels produced by the capsule convolution
+        kernel_size (int or tuple): size of the capsule convolving kernel
+        in_length (int): length of each input capsule
+        out_length (int): length of each output capsule
+        stride (int or tuple, optional): stride of the capsule convolution
+        padding (int or tuple, optional): zero-padding added to both sides of the input
+        dilation (int or tuple, optional): spacing between kernel elements
+        routing_type (str, optional): routing algorithm type
+           -- options: ['dynamic', 'k_means']
+        num_iterations (int, optional): number of routing iterations
+        dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
+        bias (bool, optional):  if True, adds a learnable bias to the output
+        kwargs (dict, optional): other args:
+           - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
+               -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
+           - squash (bool, optional): squash output capsules or not, it works for all routing
+           - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
+           - softmax_dim (int, optional): specify the softmax dim between capsules, it works for all routing
+
+    Shape:
+        - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
+        - Output: (Tensor): (N, C_{out}, H_{out}, W_{out}) where
+          :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - dilation[0] * (kernel_size[0] -1) - 1) / stride[0] + 1)`
+          :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - dilation[1] * (kernel_size[1] -1) - 1) / stride[1] + 1)`
+
+    Attributes:
+        - weight (Tensor): the learnable weights of the module of shape
+           (out_channels // out_length, out_length, in_length, kernel_size[0], kernel_size[1])
+        - bias (Tensor): the learnable bias of the module of shape
+           (out_channels // out_length, out_length)
+
+    ------------------------------------------------------------------------------------------------
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        MAKE SURE THE CapsuleConv2d's OUTPUT CAPSULE's LENGTH EQUALS
+                               THE NEXT CapsuleConv2d's INPUT CAPSULE's LENGTH
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ------------------------------------------------------------------------------------------------
+    Examples::
+        >>> import torch
+        >>> from capsule_layer import CapsuleConv2d
+        >>> # With square kernels and equal stride
+        >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2)
+        >>> # non-square kernels and unequal stride and with padding
+        >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
+        >>> input = torch.randn(20, 16, 20, 50)
+        >>> output = m(input)
+        >>> print(output.size())
+        torch.Size([20, 24, 9, 24])
+        >>> input = torch.randn(10, 3, 14, 25)
+        >>> output = m1(input)
+        >>> print(output.size())
+        torch.Size([10, 16, 10, 25])
+    """
+
+    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
+                 routing_type='k_means', num_iterations=3, dropout=0, bias=True, **kwargs):
+        super(CapsuleConvTranspose2d, self).__init__()
+        if in_channels % in_length != 0:
+            raise ValueError('Expected in_channels must be divisible by in_length.')
+        if out_channels % out_length != 0:
+            raise ValueError('Expected out_channels must be divisible by out_length.')
+        if num_iterations < 1:
+            raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
+        if dropout < 0 or dropout > 1:
+            raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
+        kernel_size = _pair(kernel_size)
+        stride = _pair(stride)
+        padding = _pair(padding)
+        dilation = _pair(dilation)
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.in_length = in_length
+        self.out_length = out_length
+        self.stride = stride
+        self.padding = padding
+        self.dilation = dilation
+        self.routing_type = routing_type
+        self.num_iterations = num_iterations
+        self.dropout = dropout
+        self.kwargs = kwargs
+        self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+        if bias:
+            self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
+            nn.init.xavier_uniform_(self.bias)
+        else:
+            self.bias = None
+
+        nn.init.xavier_uniform_(self.weight)
+
+    def forward(self, input):
+        return CL.capsule_conv_transpose2d(input, self.weight, self.stride, self.padding, self.dilation,
+                                           self.routing_type,
+                                           self.num_iterations, self.dropout, self.bias, self.training, **self.kwargs)
+
+    def __repr__(self):
+        s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
+             ', in_length={in_length}, out_length={out_length}, stride={stride}')
+        if self.padding != (0,) * len(self.padding):
+            s += ', padding={padding}'
+        if self.dilation != (1,) * len(self.dilation):
+            s += ', dilation={dilation}'
+        s += ')'
+        return s.format(name=self.__class__.__name__, **self.__dict__)
+
+
 class CapsuleLinear(nn.Module):
     r"""Applies a linear combination to the incoming capsules
 

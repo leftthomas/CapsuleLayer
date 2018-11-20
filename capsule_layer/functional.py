@@ -48,6 +48,53 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
     return out
 
 
+def capsule_conv_transpose2d(input, weight, stride=1, padding=0, dilation=1, routing_type='k_means', num_iterations=3,
+                             dropout=0,
+                             bias=None, training=False, **kwargs):
+    if input.dim() != 4:
+        raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
+    if weight.dim() != 5:
+        raise ValueError('Expected 5D tensor as weight, got {}D tensor instead.'.format(weight.dim()))
+    if input.type() != weight.type():
+        raise ValueError('Expected input and weight tensor should be the same type, got {} in '
+                         'input tensor, {} in weight tensor instead.'.format(input.type(), weight.type()))
+    if not input.is_contiguous():
+        raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
+    if not weight.is_contiguous():
+        raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
+    if input.size(1) % weight.size(2) != 0:
+        raise ValueError('Expected in_channels must be divisible by in_length.')
+    if num_iterations < 1:
+        raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
+    if dropout < 0 or dropout > 1:
+        raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
+
+    batch_size = input.size(0)
+    input = input.view(input.size(0), input.size(1) // weight.size(2), weight.size(2), *input.size()[-2:])
+    input = input.view(-1, *input.size()[2:])
+    priors = F.conv2d(input, weight.view(-1, *weight.size()[2:]), stride=stride, padding=padding, dilation=dilation)
+    # [batch_size, in_capsule_types, out_capsule_types, out_length, out_height, out_width]
+    priors = priors.view(batch_size, priors.size(0) // batch_size, priors.size(1) // weight.size(1), -1,
+                         *priors.size()[-2:])
+    # [batch_size, out_height, out_width, out_capsule_types, in_capsule_types, out_length]
+    priors = priors.permute(0, 4, 5, 2, 1, 3).contiguous()
+    if bias is not None:
+        bias = bias.view(1, 1, 1, *bias.size(), 1)
+        bias = bias.permute(0, 1, 2, 3, 5, 4).contiguous()
+
+    if routing_type == 'dynamic':
+        # [batch_size, out_height, out_width, out_capsule_types, out_length]
+        out = dynamic_routing(priors, bias, num_iterations, **kwargs)
+    elif routing_type == 'k_means':
+        out = k_means_routing(priors, bias, num_iterations, **kwargs)
+    else:
+        raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
+    out = out.permute(0, 3, 4, 1, 2)
+    # [batch_size, out_channels, out_height, out_width]
+    out = out.contiguous().view(out.size(0), -1, *out.size()[-2:])
+    return out
+
+
 def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0,
                    bias=None, training=False, **kwargs):
     if input.dim() != 3:
