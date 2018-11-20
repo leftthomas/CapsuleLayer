@@ -22,15 +22,18 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
-    input = input.view(input.size(0), weight.size(0), weight.size(-1), *input.size()[-2:])
-    input = input.permute(1, 0, 2, 3, 4)
-    input = input.contiguous().view(-1, *input.size()[2:])
-
-    weight = weight.permute(1, 2, 4, 0, 3)
-    weight = weight.contiguous().view(*weight.size()[:-2], -1)
-    F.conv2d(input, weight, stride=stride, padding=padding)
-
-
+    input = input.view(input.size(0), input.size(1) // weight.size(2), weight.size(2), *input.size()[-2:])
+    input = input.view(-1, *input.size()[2:])
+    weight = weight.view(-1, *weight.size()[2:])
+    priors = F.conv2d(input, weight, stride=stride, padding=padding, dilation=dilation)
+    if routing_type == 'dynamic':
+        # [batch_size, out_channels, out_height, out_width]
+        out = dynamic_routing(priors, num_iterations, **kwargs)
+    elif routing_type == 'k_means':
+        out = k_means_routing(priors, num_iterations, **kwargs)
+    else:
+        raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
+    return out
 
 
 def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0,
