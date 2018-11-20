@@ -31,11 +31,15 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
                          *priors.size()[-2:])
     # [batch_size, out_height, out_width, out_capsule_types, in_capsule_types, out_length]
     priors = priors.permute(0, 4, 5, 2, 1, 3).contiguous()
+    if bias is not None:
+        bias = bias.view(1, 1, 1, *bias.size(), 1)
+        bias = bias.permute(0, 1, 2, 3, 5, 4).contiguous()
+
     if routing_type == 'dynamic':
         # [batch_size, out_height, out_width, out_capsule_types, out_length]
-        out = dynamic_routing(priors, num_iterations, **kwargs)
+        out = dynamic_routing(priors, bias, num_iterations, **kwargs)
     elif routing_type == 'k_means':
-        out = k_means_routing(priors, num_iterations, **kwargs)
+        out = k_means_routing(priors, bias, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     out = out.permute(0, 3, 4, 1, 2)
@@ -45,7 +49,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
 
 
 def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0,
-                   training=False, **kwargs):
+                   bias=None, training=False, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -75,23 +79,29 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
+    if bias is not None:
+        bias = bias.view(1, *bias.size(), 1)
+        bias = bias.permute(0, 1, 3, 2).contiguous()
+
     if routing_type == 'dynamic':
         # [batch_size, out_capsules, out_length]
-        out = dynamic_routing(priors, num_iterations, **kwargs)
+        out = dynamic_routing(priors, bias, num_iterations, **kwargs)
     elif routing_type == 'k_means':
-        out = k_means_routing(priors, num_iterations, **kwargs)
+        out = k_means_routing(priors, bias, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
     return out
 
 
-def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False, softmax_dim=-3):
+def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob=False, softmax_dim=-3):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=softmax_dim)
         output = (probs * input).sum(dim=-2, keepdim=True)
+        if bias is not None:
+            output = output + bias
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
@@ -107,7 +117,8 @@ def dynamic_routing(input, num_iterations=3, squash=True, return_prob=False, sof
             return output.squeeze(dim=-2)
 
 
-def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, return_prob=False, softmax_dim=-3):
+def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash=True, return_prob=False,
+                    softmax_dim=-3):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     output = input.sum(dim=-2, keepdim=True) / input.size(-3)
@@ -125,6 +136,8 @@ def k_means_routing(input, num_iterations=3, similarity='dot', squash=True, retu
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=softmax_dim)
         output = (probs * input).sum(dim=-2, keepdim=True)
+        if bias is not None:
+            output = output + bias
     if squash:
         if return_prob:
             return _squash(output).squeeze(dim=-2), probs.squeeze(dim=-1)

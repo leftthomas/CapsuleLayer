@@ -47,7 +47,7 @@ class CapsuleConv2d(nn.Module):
         - weight (Tensor): the learnable weights of the module of shape
            (out_channels // out_length, out_length, in_length, kernel_size[0], kernel_size[1])
         - bias (Tensor): the learnable bias of the module of shape
-           (out_channels)
+           (out_channels // out_length, out_length)
 
     ------------------------------------------------------------------------------------------------
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -102,7 +102,7 @@ class CapsuleConv2d(nn.Module):
         self.kwargs = kwargs
         self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
         if bias:
-            self.bias = Parameter(torch.Tensor(out_channels))
+            self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
             nn.init.xavier_uniform_(self.bias)
         else:
             self.bias = None
@@ -137,6 +137,7 @@ class CapsuleLinear(nn.Module):
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
          dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
+         bias (bool, optional):  if True, adds a learnable bias to the output
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
@@ -150,11 +151,15 @@ class CapsuleLinear(nn.Module):
 
      Attributes:
          if share_weight:
-         - weight (Tensor): the learnable weights of the module of shape
+            - weight (Tensor): the learnable weights of the module of shape
               (out_capsules, out_length, in_length)
+            - bias (Tensor): the learnable bias of the module of shape
+              (out_capsules, out_length)
         else:
-        -  weight (Tensor): the learnable weights of the module of shape
+            -  weight (Tensor): the learnable weights of the module of shape
               (out_capsules, in_capsules, out_length, in_length)
+            - bias (Tensor): the learnable bias of the module of shape
+              (out_capsules, out_length)
 
      Examples::
          >>> import torch
@@ -167,7 +172,7 @@ class CapsuleLinear(nn.Module):
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
+                 routing_type='k_means', num_iterations=3, dropout=0, bias=True, **kwargs):
         super(CapsuleLinear, self).__init__()
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
@@ -192,12 +197,17 @@ class CapsuleLinear(nn.Module):
                 raise ValueError('Expected in_capsules must be int.')
             else:
                 self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
+        if bias:
+            self.bias = Parameter(torch.Tensor(out_capsules, out_length))
+            nn.init.xavier_uniform_(self.bias)
+        else:
+            self.bias = None
 
         nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
-                                 self.dropout, self.training, **self.kwargs)
+                                 self.dropout, self.bias, self.training, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
