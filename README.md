@@ -23,7 +23,7 @@ pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 import torch
 from capsule_layer import capsule_cov2d
 x = torch.randn(4, 8, 28, 50)
-w = torch.randn(2, 2, 3, 5, 8, 4)
+w = torch.randn(2, 8, 4, 3, 5)
 if torch.cuda.is_available():
     x, w = x.to('cuda'), w.to('cuda')
 # routing_type options: ['dynamic', 'k_means']
@@ -34,7 +34,7 @@ or with modules interface:
 import torch
 from capsule_layer import CapsuleConv2d
 x = torch.randn(4, 8, 28, 50)
-module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means')
+module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means', bias=False)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
 y = module(x)
@@ -56,7 +56,7 @@ or with modules interface:
 import torch
 from capsule_layer import CapsuleLinear
 x = torch.randn(64, 128, 8)
-module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3, dropout=0.5)
+module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3, dropout=0.5, bias=False)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
 y = module(x)
