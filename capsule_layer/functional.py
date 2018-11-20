@@ -15,12 +15,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
         raise ValueError('Expected input tensor should be contiguous, got non-contiguous tensor instead.')
     if not weight.is_contiguous():
         raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
-    if input.size(1) % weight.size(-1) != 0:
+    if input.size(1) % weight.size(2) != 0:
         raise ValueError('Expected in_channels must be divisible by in_length.')
-    if input.size(1) != (weight.size(0) * weight.size(-1)):
-        raise ValueError('Expected input tensor has the same in_channels as weight tensor, got in_channels {} in input '
-                         'tensor, in_channels {} in weight tensor.'.format(input.size(-1),
-                                                                           weight.size(0) * weight.size(-1)))
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     if dropout < 0 or dropout > 1:
@@ -62,14 +58,6 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
     if dropout < 0 or dropout > 1:
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
-
-    if dropout != 0 and training:
-        noise = input.new_empty(input.size()[:-1])
-        noise.bernoulli_(dropout)
-        noise = noise.byte().unsqueeze(dim=-1)
-        input = input.masked_fill(noise, 0)
-        # if 1-dropout == 0, the result will be inf, don't make it happen
-        input = input.div(1 - dropout)
 
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
