@@ -2,8 +2,8 @@ import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', num_iterations=3, dropout=0,
-                  training=False, **kwargs):
+def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='k_means', num_iterations=3, dropout=0,
+                  bias=None, training=False, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 5:
@@ -27,8 +27,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, routing_type='k_means', nu
         raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
     input = input.view(input.size(0), weight.size(0), weight.size(-1), *input.size()[-2:])
-    input = input.permute(1, 0, 3, 4, 2)
-    input = input.contiguous().view(-1, *input.size()[1:])
+    input = input.permute(1, 0, 2, 3, 4)
+    input = input.contiguous().view(-1, *input.size()[2:])
 
     weight = weight.permute(1, 2, 4, 0, 3)
     weight = weight.contiguous().view(*weight.size()[:-2], -1)

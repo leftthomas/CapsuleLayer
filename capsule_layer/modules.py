@@ -10,24 +10,26 @@ class CapsuleConv2d(nn.Module):
     r"""Applies a 2D capsule convolution over an input signal composed of several input
     planes.
 
-    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding` can either be:
+    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:
 
         - a single ``int`` -- in which case the same value is used for the height and width dimension
         - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,
           and the second `int` for the width dimension
 
     Args:
-        in_channels (int): Number of channels in the input image
-        out_channels (int): Number of channels produced by the capsule convolution
-        kernel_size (int or tuple): Size of the capsule convolving kernel
+        in_channels (int): number of channels in the input image
+        out_channels (int): number of channels produced by the capsule convolution
+        kernel_size (int or tuple): size of the capsule convolving kernel
         in_length (int): length of each input capsule
         out_length (int): length of each output capsule
-        stride (int or tuple, optional): Stride of the capsule convolution
-        padding (int or tuple, optional): Zero-padding added to both sides of the input
-        routing_type (str, optional):  routing algorithm type
+        stride (int or tuple, optional): stride of the capsule convolution
+        padding (int or tuple, optional): zero-padding added to both sides of the input
+        dilation (int or tuple, optional): spacing between kernel elements
+        routing_type (str, optional): routing algorithm type
            -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
-        dropout (float, optional): If non-zero, introduces a dropout layer on the inputs
+        dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
+        bias (bool, optional):  if True, adds a learnable bias to the output
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
@@ -38,12 +40,14 @@ class CapsuleConv2d(nn.Module):
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
         - Output: (Tensor): (N, C_{out}, H_{out}, W_{out}) where
-          :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - kernel_size[0]) / stride[0] + 1)`
-          :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - kernel_size[1]) / stride[1] + 1)`
+          :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - dilation[0] * (kernel_size[0] -1) - 1) / stride[0] + 1)`
+          :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - dilation[1] * (kernel_size[1] -1) - 1) / stride[1] + 1)`
 
     Attributes:
-        weight (Tensor): the learnable weights of the module of shape
-           (out_channels // out_length, in_channels // in_length, kernel_size[0], kernel_size[1], out_length, in_length)
+        - weight (Tensor): the learnable weights of the module of shape
+           (out_channels // out_length, out_length, in_length, kernel_size[0], kernel_size[1])
+        - bias (Tensor): the learnable bias of the module of shape
+           (out_channels)
 
     ------------------------------------------------------------------------------------------------
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -68,8 +72,8 @@ class CapsuleConv2d(nn.Module):
         torch.Size([10, 16, 10, 25])
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 routing_type='k_means', num_iterations=3, dropout=0, **kwargs):
+    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
+                 routing_type='k_means', num_iterations=3, dropout=0, bias=True, **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -82,6 +86,7 @@ class CapsuleConv2d(nn.Module):
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
+        dilation = _pair(dilation)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -90,24 +95,30 @@ class CapsuleConv2d(nn.Module):
         self.out_length = out_length
         self.stride = stride
         self.padding = padding
+        self.dilation = dilation
         self.routing_type = routing_type
         self.num_iterations = num_iterations
         self.dropout = dropout
         self.kwargs = kwargs
-        self.weight = Parameter(
-            torch.Tensor(in_channels // in_length, *kernel_size, out_length, in_length))
+        self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+        if bias:
+            self.bias = Parameter(torch.Tensor(out_channels))
+        else:
+            self.bias = None
 
         nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.routing_type, self.num_iterations,
-                                self.dropout, self.training, **self.kwargs)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.routing_type,
+                                self.num_iterations, self.dropout, self.bias, self.training, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
              ', in_length={in_length}, out_length={out_length}, stride={stride}')
         if self.padding != (0,) * len(self.padding):
             s += ', padding={padding}'
+        if self.dilation != (1,) * len(self.dilation):
+            s += ', dilation={dilation}'
         s += ')'
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
@@ -120,11 +131,11 @@ class CapsuleLinear(nn.Module):
          in_length (int): length of each input capsule
          out_length (int): length of each output capsule
          in_capsules (int, optional): number of input capsules
-         share_weight (bool, optional): whether share weight between input capsules or not
+         share_weight (bool, optional): if True, share weight between input capsules
          routing_type (str, optional): routing algorithm type
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
-         dropout (float, optional): If non-zero, introduces a dropout layer on the inputs
+         dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
