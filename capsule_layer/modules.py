@@ -164,8 +164,10 @@ class CapsuleConvTranspose2d(nn.Module):
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
         - Output: (Tensor): (N, C_{out}, H_{out}, W_{out}) where
-          :math:`H_{out} = (H_{in} - 1) * stride[0] - 2 * padding[0] + dilation[0] * kernel_size[0] + output_padding[0]`
-          :math:`W_{out} = (W_{in} - 1) * stride[1] - 2 * padding[1] + dilation[1] * kernel_size[1] + output_padding[1]`
+          :math:`H_{out} = (H_{in} - 1) * stride[0] - 2 * padding[0] + dilation[0] * (kernel_size[0] -1) + 1
+            + output_padding[0]`
+          :math:`W_{out} = (W_{in} - 1) * stride[1] - 2 * padding[1] + dilation[1] * (kernel_size[1] -1) + 1
+            + output_padding[1]`
 
     Attributes:
         - weight (Tensor): the learnable weights of the module of shape
@@ -183,27 +185,17 @@ class CapsuleConvTranspose2d(nn.Module):
         >>> import torch
         >>> from capsule_layer import CapsuleConvTranspose2d
         >>> # With square kernels and equal stride
-        >>> m = CapsuleConvTranspose2d(16, 33, 3, 4, 3, stride=2)
+        >>> m = CapsuleConvTranspose2d(16, 33, 3, 4, 3, stride=2, dilation=3, output_padding=2, padding=1)
         >>> # non-square kernels and unequal stride and with padding
         >>> m1 = CapsuleConvTranspose2d(16, 33, (3, 5), 4, 3, stride=(2, 1), padding=(4, 2))
         >>> input = torch.randn(20, 16, 50, 100)
         >>> output = m(input)
         >>> output.size()
-        torch.Size([20, 33, 101, 201])
+        torch.Size([20, 33, 105, 205])
         >>> input = torch.randn(20, 16, 25, 50)
         >>> output = m1(input)
         >>> output.size()
         torch.Size([20, 33, 43, 50])
-        >>> # exact output size can be also specified as an argument
-        >>> input = torch.randn(1, 16, 12, 12)
-        >>> downsample = CapsuleConv2d(16, 16, 3, 2, 4, stride=2, padding=1)
-        >>> upsample = CapsuleConvTranspose2d(16, 16, 3, 4, 2, stride=2, padding=1)
-        >>> h = downsample(input)
-        >>> h.size()
-        torch.Size([1, 16, 6, 6])
-        >>> output = upsample(h, output_size=input.size())
-        >>> output.size()
-        torch.Size([1, 16, 12, 12])
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
@@ -246,39 +238,10 @@ class CapsuleConvTranspose2d(nn.Module):
 
         nn.init.xavier_uniform_(self.weight)
 
-    def forward(self, input, output_size=None):
-        self.output_padding = self._output_padding(input, output_size)
+    def forward(self, input):
         return CL.capsule_conv_transpose2d(input, self.weight, self.stride, self.padding, self.output_padding,
                                            self.dilation, self.routing_type, self.num_iterations, self.dropout,
                                            self.bias, self.training, **self.kwargs)
-
-    def _output_padding(self, input, output_size):
-        if output_size is None:
-            return self.output_padding
-
-        output_size = list(output_size)
-        k = input.dim() - 2
-        if len(output_size) == k + 2:
-            output_size = output_size[-2:]
-        if len(output_size) != k:
-            raise ValueError(
-                "output_size must have {} or {} elements (got {})"
-                    .format(k, k + 2, len(output_size)))
-
-        def dim_size(d):
-            return ((input.size(d + 2) - 1) * self.stride[d] -
-                    2 * self.padding[d] + self.kernel_size[d])
-
-        min_sizes = [dim_size(d) for d in range(k)]
-        max_sizes = [min_sizes[d] + self.stride[d] - 1 for d in range(k)]
-        for size, min_size, max_size in zip(output_size, min_sizes, max_sizes):
-            if size < min_size or size > max_size:
-                raise ValueError((
-                    "requested an output size of {}, but valid sizes range "
-                    "from {} to {} (for an input of {})").format(
-                    output_size, min_sizes, max_sizes, input.size()[2:]))
-
-        return tuple([output_size[d] - min_sizes[d] for d in range(k)])
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
