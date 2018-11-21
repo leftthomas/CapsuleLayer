@@ -196,6 +196,16 @@ class CapsuleConvTranspose2d(nn.Module):
         >>> output = m1(input)
         >>> output.size()
         torch.Size([20, 33, 43, 50])
+        >>> # exact output size can be also specified as an argument
+        >>> input = torch.randn(1, 16, 12, 12)
+        >>> downsample = CapsuleConv2d(16, 16, 3, 4, 2, stride=2, padding=1)
+        >>> upsample = CapsuleConvTranspose2d(16, 16, 3, 2, 4, stride=2, padding=1)
+        >>> h = downsample(input)
+        >>> h.size()
+        torch.Size([1, 16, 6, 6])
+        >>> output = upsample(h, output_size=input.size())
+        >>> output.size()
+        torch.Size([1, 16, 12, 12])
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
@@ -238,7 +248,33 @@ class CapsuleConvTranspose2d(nn.Module):
 
         nn.init.xavier_uniform_(self.weight)
 
-    def forward(self, input):
+    def _output_padding(self, input, output_size):
+        if output_size is None:
+            return self.output_padding
+
+        output_size = list(output_size)
+        k = input.dim() - 2
+        if len(output_size) == k + 2:
+            output_size = output_size[-2:]
+        if len(output_size) != k:
+            raise ValueError('output_size must have {} or {} elements (got {})'.format(k, k + 2, len(output_size)))
+
+        def dim_size(d):
+            return (input.size(d + 2) - 1) * self.stride[d] - 2 * self.padding[d] + self.dilation[d] * (
+                    self.kernel_size[d] - 1) + 1
+
+        min_sizes = [dim_size(d) for d in range(k)]
+        max_sizes = [min_sizes[d] + self.stride[d] - 1 for d in range(k)]
+        for size, min_size, max_size in zip(output_size, min_sizes, max_sizes):
+            if size < min_size or size > max_size:
+                raise ValueError(
+                    'requested an output size of {}, but valid sizes range from {} to {} (for an input of {})'.format(
+                        output_size, min_sizes, max_sizes, input.size()[-2:]))
+
+        return tuple([output_size[d] - min_sizes[d] for d in range(k)])
+
+    def forward(self, input, output_size=None):
+        self.output_padding = self._output_padding(input, output_size)
         return CL.capsule_conv_transpose2d(input, self.weight, self.stride, self.padding, self.output_padding,
                                            self.dilation, self.routing_type, self.num_iterations, self.dropout,
                                            self.bias, self.training, **self.kwargs)
