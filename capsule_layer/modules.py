@@ -125,10 +125,15 @@ class CapsuleConv2d(nn.Module):
 
 
 class CapsuleConvTranspose2d(nn.Module):
-    r"""Applies a 2D capsule convolution over an input signal composed of several input
+    r"""Applies a 2D capsule transposed convolution over an input signal composed of several input
     planes.
 
-    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation` can either be:
+    This module can be seen as the gradient of capsule Conv2d with respect to its input.
+    It is also known as a fractionally-strided convolution or
+    a deconvolution (although it is not an actual deconvolution operation).
+
+    The parameters :attr:`kernel_size`, :attr:`stride`, :attr:`padding`, :attr:`dilation`, :attr:`output_padding` can
+    either be:
 
         - a single ``int`` -- in which case the same value is used for the height and width dimension
         - a ``tuple`` of two ints -- in which case, the first `int` is used for the height dimension,
@@ -136,12 +141,13 @@ class CapsuleConvTranspose2d(nn.Module):
 
     Args:
         in_channels (int): number of channels in the input image
-        out_channels (int): number of channels produced by the capsule convolution
+        out_channels (int): number of channels produced by the capsule transposed convolution
         kernel_size (int or tuple): size of the capsule convolving kernel
         in_length (int): length of each input capsule
         out_length (int): length of each output capsule
         stride (int or tuple, optional): stride of the capsule convolution
         padding (int or tuple, optional): zero-padding added to both sides of the input
+        output_padding (int or tuple, optional): additional size added to one side of each dimension in the output shape
         dilation (int or tuple, optional): spacing between kernel elements
         routing_type (str, optional): routing algorithm type
            -- options: ['dynamic', 'k_means']
@@ -158,40 +164,51 @@ class CapsuleConvTranspose2d(nn.Module):
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
         - Output: (Tensor): (N, C_{out}, H_{out}, W_{out}) where
-          :math:`H_{out} = floor((H_{in}  + 2 * padding[0] - dilation[0] * (kernel_size[0] -1) - 1) / stride[0] + 1)`
-          :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - dilation[1] * (kernel_size[1] -1) - 1) / stride[1] + 1)`
+          :math:`H_{out} = (H_{in} - 1) * stride[0] - 2 * padding[0] + dilation[0] * kernel_size[0] + output_padding[0]`
+          :math:`W_{out} = (W_{in} - 1) * stride[1] - 2 * padding[1] + dilation[1] * kernel_size[1] + output_padding[1]`
 
     Attributes:
         - weight (Tensor): the learnable weights of the module of shape
-           (out_channels // out_length, out_length, in_length, kernel_size[0], kernel_size[1])
+           (in_length, out_channels // out_length, out_length, kernel_size[0], kernel_size[1])
         - bias (Tensor): the learnable bias of the module of shape
            (out_channels // out_length, out_length)
 
     ------------------------------------------------------------------------------------------------
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        MAKE SURE THE CapsuleConv2d's OUTPUT CAPSULE's LENGTH EQUALS
-                               THE NEXT CapsuleConv2d's INPUT CAPSULE's LENGTH
+                        MAKE SURE THE CapsuleConvTranspose2d's OUTPUT CAPSULE's LENGTH EQUALS
+                               THE NEXT CapsuleConvTranspose2d's INPUT CAPSULE's LENGTH
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ------------------------------------------------------------------------------------------------
     Examples::
         >>> import torch
-        >>> from capsule_layer import CapsuleConv2d
+        >>> from capsule_layer import CapsuleConvTranspose2d
         >>> # With square kernels and equal stride
-        >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2)
+        >>> m = CapsuleConvTranspose2d(16, 33, 3, 4, 3, stride=2)
         >>> # non-square kernels and unequal stride and with padding
-        >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
-        >>> input = torch.randn(20, 16, 20, 50)
+        >>> m1 = CapsuleConvTranspose2d(16, 33, (3, 5), 4, 3, stride=(2, 1), padding=(4, 2))
+        >>> input = torch.randn(20, 16, 50, 100)
         >>> output = m(input)
-        >>> print(output.size())
-        torch.Size([20, 24, 9, 24])
-        >>> input = torch.randn(10, 3, 14, 25)
+        >>> output.size()
+        torch.Size([20, 33, 101, 201])
+        >>> input = torch.randn(20, 16, 25, 50)
         >>> output = m1(input)
-        >>> print(output.size())
-        torch.Size([10, 16, 10, 25])
+        >>> output.size()
+        torch.Size([20, 33, 43, 50])
+        >>> # exact output size can be also specified as an argument
+        >>> input = torch.randn(1, 16, 12, 12)
+        >>> downsample = CapsuleConv2d(16, 16, 3, 2, 4, stride=2, padding=1)
+        >>> upsample = CapsuleConvTranspose2d(16, 16, 3, 4, 2, stride=2, padding=1)
+        >>> h = downsample(input)
+        >>> h.size()
+        torch.Size([1, 16, 6, 6])
+        >>> output = upsample(h, output_size=input.size())
+        >>> output.size()
+        torch.Size([1, 16, 12, 12])
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
-                 routing_type='k_means', num_iterations=3, dropout=0, bias=True, **kwargs):
+    def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
+                 output_padding=0, dilation=1, routing_type='k_means', num_iterations=3, dropout=0, bias=True,
+                 **kwargs):
         super(CapsuleConvTranspose2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -204,6 +221,7 @@ class CapsuleConvTranspose2d(nn.Module):
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
+        output_padding = _pair(output_padding)
         dilation = _pair(dilation)
 
         self.in_channels = in_channels
@@ -213,12 +231,13 @@ class CapsuleConvTranspose2d(nn.Module):
         self.out_length = out_length
         self.stride = stride
         self.padding = padding
+        self.output_padding = output_padding
         self.dilation = dilation
         self.routing_type = routing_type
         self.num_iterations = num_iterations
         self.dropout = dropout
         self.kwargs = kwargs
-        self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+        self.weight = Parameter(torch.Tensor(in_length, out_channels // out_length, out_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
             nn.init.xavier_uniform_(self.bias)
@@ -227,16 +246,47 @@ class CapsuleConvTranspose2d(nn.Module):
 
         nn.init.xavier_uniform_(self.weight)
 
-    def forward(self, input):
-        return CL.capsule_conv_transpose2d(input, self.weight, self.stride, self.padding, self.dilation,
-                                           self.routing_type,
-                                           self.num_iterations, self.dropout, self.bias, self.training, **self.kwargs)
+    def forward(self, input, output_size=None):
+        self.output_padding = self._output_padding(input, output_size)
+        return CL.capsule_conv_transpose2d(input, self.weight, self.stride, self.padding, self.output_padding,
+                                           self.dilation, self.routing_type, self.num_iterations, self.dropout,
+                                           self.bias, self.training, **self.kwargs)
+
+    def _output_padding(self, input, output_size):
+        if output_size is None:
+            return self.output_padding
+
+        output_size = list(output_size)
+        k = input.dim() - 2
+        if len(output_size) == k + 2:
+            output_size = output_size[-2:]
+        if len(output_size) != k:
+            raise ValueError(
+                "output_size must have {} or {} elements (got {})"
+                    .format(k, k + 2, len(output_size)))
+
+        def dim_size(d):
+            return ((input.size(d + 2) - 1) * self.stride[d] -
+                    2 * self.padding[d] + self.kernel_size[d])
+
+        min_sizes = [dim_size(d) for d in range(k)]
+        max_sizes = [min_sizes[d] + self.stride[d] - 1 for d in range(k)]
+        for size, min_size, max_size in zip(output_size, min_sizes, max_sizes):
+            if size < min_size or size > max_size:
+                raise ValueError((
+                    "requested an output size of {}, but valid sizes range "
+                    "from {} to {} (for an input of {})").format(
+                    output_size, min_sizes, max_sizes, input.size()[2:]))
+
+        return tuple([output_size[d] - min_sizes[d] for d in range(k)])
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
              ', in_length={in_length}, out_length={out_length}, stride={stride}')
         if self.padding != (0,) * len(self.padding):
             s += ', padding={padding}'
+        if self.output_padding != (0,) * len(self.output_padding):
+            s += ', output_padding={output_padding}'
         if self.dilation != (1,) * len(self.dilation):
             s += ', dilation={dilation}'
         s += ')'
