@@ -296,6 +296,8 @@ class CapsuleLinear(nn.Module):
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
          bias (bool, optional):  if True, adds a learnable bias to the output
+         share_type (str, optional): share weight type
+            -- options: ['bottom', 'top']
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
@@ -308,16 +310,18 @@ class CapsuleLinear(nn.Module):
          - Output: (Tensor): (N, out_capsules, out_length)
 
      Attributes:
-         if share_weight:
+         if share_weight and share_type == 'bottom':
             - weight (Tensor): the learnable weights of the module of shape
               (out_capsules, out_length, in_length)
-            - bias (Tensor): the learnable bias of the module of shape
-              (out_capsules, out_length)
+         elif share_weight and share_type == 'top':
+            - weight (Tensor): the learnable weights of the module of shape
+              (in_capsules, out_length, in_length)
         else:
             -  weight (Tensor): the learnable weights of the module of shape
               (out_capsules, in_capsules, out_length, in_length)
-            - bias (Tensor): the learnable bias of the module of shape
-              (out_capsules, out_length)
+
+        - bias (Tensor): the learnable bias of the module of shape
+          (out_capsules, out_length)
 
      Examples::
          >>> import torch
@@ -330,7 +334,7 @@ class CapsuleLinear(nn.Module):
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='k_means', num_iterations=3, bias=True, **kwargs):
+                 routing_type='k_means', num_iterations=3, bias=True, share_type='bottom', **kwargs):
         super(CapsuleLinear, self).__init__()
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
@@ -340,13 +344,22 @@ class CapsuleLinear(nn.Module):
         self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
+        self.share_type = share_type
         self.kwargs = kwargs
 
-        if self.share_weight:
+        if self.share_type not in ['bottom', 'top']:
+            raise NotImplementedError('{} share type is not implemented.'.format(share_type))
+
+        if self.share_weight and self.share_type == 'bottom':
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
                 self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
+        elif self.share_weight and self.share_type == 'top':
+            if in_capsules is None:
+                raise ValueError('Expected in_capsules must be int.')
+            else:
+                self.weight = Parameter(torch.Tensor(in_capsules, out_length, in_length))
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
@@ -362,7 +375,7 @@ class CapsuleLinear(nn.Module):
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
-                                 self.bias, **self.kwargs)
+                                 self.bias, self.share_type, self.out_capsules, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \

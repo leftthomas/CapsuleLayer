@@ -91,7 +91,8 @@ def capsule_conv_transpose2d(input, weight, stride=1, padding=0, output_padding=
     return out
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None,
+                   share_type='bottom', out_capsules=None, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -113,10 +114,21 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
                          'in input tensor, in_length {} in weight tensor.'.format(input.size(-1), weight.size(-1)))
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
+    if share_type not in ['bottom', 'top']:
+        raise NotImplementedError('{} share type is not implemented.'.format(share_type))
+    if share_weight and share_type == 'top' and input.size(1) != weight.size(0):
+        raise ValueError('Expected input tensor has the same in_capsules as weight tensor, got {} in_capsules '
+                         'in input tensor, {} in_capsules in weight tensor.'.format(input.size(1), weight.size(0)))
 
-    if share_weight:
+    if share_weight and share_type == 'bottom':
         # [batch_size, out_capsules, in_capsules, out_length]
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
+    elif share_weight and share_type == 'top':
+        if out_capsules is None:
+            raise ValueError('Expected out_capsules must be int.')
+        else:
+            priors = (weight[None, None, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
+            priors = priors.expand(priors.size(0), out_capsules, *priors.size()[2:])
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     if bias is not None:
