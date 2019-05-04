@@ -326,7 +326,7 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> import torch
          >>> from capsule_layer import CapsuleLinear
-         >>> m = CapsuleLinear(30, 8, 16, 20, share_weight=False, routing_type = 'dynamic', num_iterations=5)
+         >>> m = CapsuleLinear(30, 8, 16, 20, routing_type = 'dynamic', share_type='top', num_iterations=5)
          >>> input = torch.randn(5, 20, 8)
          >>> output = m(input)
          >>> print(output.size())
