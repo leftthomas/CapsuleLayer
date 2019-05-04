@@ -28,7 +28,6 @@ class CapsuleConv2d(nn.Module):
         routing_type (str, optional): routing algorithm type
            -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
-        dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
         bias (bool, optional):  if True, adds a learnable bias to the output
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -73,7 +72,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
-                 routing_type='k_means', num_iterations=3, dropout=0, bias=True, **kwargs):
+                 routing_type='k_means', num_iterations=3, bias=True, **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -81,8 +80,6 @@ class CapsuleConv2d(nn.Module):
             raise ValueError('Expected out_channels must be divisible by out_length.')
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-        if dropout < 0 or dropout > 1:
-            raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -98,7 +95,6 @@ class CapsuleConv2d(nn.Module):
         self.dilation = dilation
         self.routing_type = routing_type
         self.num_iterations = num_iterations
-        self.dropout = dropout
         self.kwargs = kwargs
         self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
         if bias:
@@ -111,7 +107,7 @@ class CapsuleConv2d(nn.Module):
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.routing_type,
-                                self.num_iterations, self.dropout, self.bias, self.training, **self.kwargs)
+                                self.num_iterations, self.bias, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -152,7 +148,6 @@ class CapsuleConvTranspose2d(nn.Module):
         routing_type (str, optional): routing algorithm type
            -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
-        dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
         bias (bool, optional):  if True, adds a learnable bias to the output
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -209,8 +204,7 @@ class CapsuleConvTranspose2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 output_padding=0, dilation=1, routing_type='k_means', num_iterations=3, dropout=0, bias=True,
-                 **kwargs):
+                 output_padding=0, dilation=1, routing_type='k_means', num_iterations=3, bias=True, **kwargs):
         super(CapsuleConvTranspose2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -218,8 +212,6 @@ class CapsuleConvTranspose2d(nn.Module):
             raise ValueError('Expected out_channels must be divisible by out_length.')
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-        if dropout < 0 or dropout > 1:
-            raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -237,7 +229,6 @@ class CapsuleConvTranspose2d(nn.Module):
         self.dilation = dilation
         self.routing_type = routing_type
         self.num_iterations = num_iterations
-        self.dropout = dropout
         self.kwargs = kwargs
         self.weight = Parameter(torch.Tensor(in_length, out_channels // out_length, out_length, *kernel_size))
         if bias:
@@ -276,8 +267,8 @@ class CapsuleConvTranspose2d(nn.Module):
     def forward(self, input, output_size=None):
         self.output_padding = self._output_padding(input, output_size)
         return CL.capsule_conv_transpose2d(input, self.weight, self.stride, self.padding, self.output_padding,
-                                           self.dilation, self.routing_type, self.num_iterations, self.dropout,
-                                           self.bias, self.training, **self.kwargs)
+                                           self.dilation, self.routing_type, self.num_iterations, self.bias,
+                                           **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -304,7 +295,6 @@ class CapsuleLinear(nn.Module):
          routing_type (str, optional): routing algorithm type
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
-         dropout (float, optional): if non-zero, introduces a dropout layer on the inputs
          bias (bool, optional):  if True, adds a learnable bias to the output
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
@@ -340,19 +330,16 @@ class CapsuleLinear(nn.Module):
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='k_means', num_iterations=3, dropout=0, bias=True, **kwargs):
+                 routing_type='k_means', num_iterations=3, bias=True, **kwargs):
         super(CapsuleLinear, self).__init__()
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-        if dropout < 0 or dropout > 1:
-            raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
         self.out_capsules = out_capsules
         self.in_capsules = in_capsules
         self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
-        self.dropout = dropout
         self.kwargs = kwargs
 
         if self.share_weight:
@@ -375,7 +362,7 @@ class CapsuleLinear(nn.Module):
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
-                                 self.dropout, self.bias, self.training, **self.kwargs)
+                                 self.bias, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \

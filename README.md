@@ -1,5 +1,5 @@
 # Capsule Layer
-PyTorch Capsule Layer.
+PyTorch Capsule Layer, include conv2d, conv_transpose2d and linear layers.
 
 ## Requirements
 * [Anaconda](https://www.anaconda.com/download/)
@@ -71,14 +71,14 @@ w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
     x, w = x.to('cuda'), w.to('cuda')
 # routing_type options: ['dynamic', 'k_means']
-y = capsule_linear(x, w, share_weight=True, routing_type='dynamic', dropout=0.5)
+y = capsule_linear(x, w, share_weight=True, routing_type='dynamic')
 ```
 or with modules interface:
 ```python
 import torch
 from capsule_layer import CapsuleLinear
 x = torch.randn(64, 128, 8)
-module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3, dropout=0.5, bias=False)
+module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3, bias=False)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
 y = module(x)
@@ -135,20 +135,6 @@ from capsule_layer.optim import MultiStepRI
 model = CapsuleLinear(3, 4, 7, num_iterations=2)
 scheduler = MultiStepRI(model, milestones=[5, 20], addition=3, verbose=True)
 # scheduler = MultiStepRI(model, milestones=[5, 20], addition=[3, 3], verbose=True)
-for epoch in range(30):
-    model.train()
-    ...
-    model.eval()
-    ...
-    scheduler.step()
-```
-* dropout
-```python
-from capsule_layer import CapsuleLinear
-from capsule_layer.optim import MultiStepDropout
-model = CapsuleLinear(3, 4, 7, dropout=0.1)
-scheduler = MultiStepDropout(model, milestones=[5, 20], addition=0.3, verbose=True)
-# scheduler = MultiStepDropout(model, milestones=[5, 20], addition=[0.3, 0.3], verbose=True)
 for epoch in range(30):
     model.train()
     ...

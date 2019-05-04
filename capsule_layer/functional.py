@@ -2,8 +2,8 @@ import torch
 import torch.nn.functional as F
 
 
-def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='k_means', num_iterations=3, dropout=0,
-                  bias=None, training=False, **kwargs):
+def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='k_means', num_iterations=3, bias=None,
+                  **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 5:
@@ -19,8 +19,6 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
         raise ValueError('Expected in_channels must be divisible by in_length.')
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-    if dropout < 0 or dropout > 1:
-        raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
     batch_size = input.size(0)
     input = input.view(input.size(0), input.size(1) // weight.size(2), weight.size(2), *input.size()[-2:])
@@ -49,7 +47,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, routing_type='
 
 
 def capsule_conv_transpose2d(input, weight, stride=1, padding=0, output_padding=0, dilation=1, routing_type='k_means',
-                             num_iterations=3, dropout=0, bias=None, training=False, **kwargs):
+                             num_iterations=3, bias=None, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if weight.dim() != 5:
@@ -65,8 +63,6 @@ def capsule_conv_transpose2d(input, weight, stride=1, padding=0, output_padding=
         raise ValueError('Expected in_channels must be divisible by in_length.')
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-    if dropout < 0 or dropout > 1:
-        raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
     batch_size = input.size(0)
     input = input.view(input.size(0), input.size(1) // weight.size(0), weight.size(0), *input.size()[-2:])
@@ -95,8 +91,7 @@ def capsule_conv_transpose2d(input, weight, stride=1, padding=0, output_padding=
     return out
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, dropout=0,
-                   bias=None, training=False, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -118,8 +113,6 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
                          'in input tensor, in_length {} in weight tensor.'.format(input.size(-1), weight.size(-1)))
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
-    if dropout < 0 or dropout > 1:
-        raise ValueError('dropout probability has to be between 0 and 1, but got {}'.format(dropout))
 
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
