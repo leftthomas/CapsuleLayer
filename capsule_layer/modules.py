@@ -25,10 +25,13 @@ class CapsuleConv2d(nn.Module):
         stride (int or tuple, optional): stride of the capsule convolution
         padding (int or tuple, optional): zero-padding added to both sides of the input
         dilation (int or tuple, optional): spacing between kernel elements
+        share_weight (bool, optional): if True, share weight between input capsules
         routing_type (str, optional): routing algorithm type
            -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
         bias (bool, optional):  if True, adds a learnable bias to the output
+        share_type (str, optional): share weight type
+           -- options: ['bottom', 'top']
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
@@ -43,8 +46,16 @@ class CapsuleConv2d(nn.Module):
           :math:`W_{out} = floor((W_{in}  + 2 * padding[1] - dilation[1] * (kernel_size[1] -1) - 1) / stride[1] + 1)`
 
     Attributes:
-        - weight (Tensor): the learnable weights of the module of shape
-           (out_channels // out_length, out_length, in_length, kernel_size[0], kernel_size[1])
+         if share_weight and share_type == 'bottom':
+            - weight (Tensor): the learnable weights of the module of shape
+              (out_channels // out_length, out_length, in_length, kernel_size[0], kernel_size[1])
+         elif share_weight and share_type == 'top':
+            - weight (Tensor): the learnable weights of the module of shape
+              (in_channels // in_length, out_length, in_length, kernel_size[0], kernel_size[1])
+        else:
+            -  weight (Tensor): the learnable weights of the module of shape
+              (out_channels // out_length, in_channels // in_length, out_length, in_length, kernel_size[0], kernel_size[1])
+
         - bias (Tensor): the learnable bias of the module of shape
            (out_channels // out_length, out_length)
 
@@ -58,7 +69,7 @@ class CapsuleConv2d(nn.Module):
         >>> import torch
         >>> from capsule_layer import CapsuleConv2d
         >>> # With square kernels and equal stride
-        >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2)
+        >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2, share_type='top')
         >>> # non-square kernels and unequal stride and with padding
         >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
         >>> input = torch.randn(20, 16, 20, 50)
@@ -72,14 +83,15 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
-                 routing_type='k_means', num_iterations=3, bias=True, **kwargs):
+                 share_weight=True, routing_type='k_means', num_iterations=3, bias=True, share_type='bottom', **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
         if out_channels % out_length != 0:
             raise ValueError('Expected out_channels must be divisible by out_length.')
         if num_iterations < 1:
-            raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
+            raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
+
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -93,10 +105,22 @@ class CapsuleConv2d(nn.Module):
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
+        self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
         self.kwargs = kwargs
-        self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+        self.share_type = share_type
+
+        if self.share_type not in ['bottom', 'top']:
+            raise NotImplementedError('{} share type is not implemented.'.format(share_type))
+
+        if self.share_weight and self.share_type == 'bottom':
+            self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+        elif self.share_weight and self.share_type == 'top':
+            self.weight = Parameter(torch.Tensor(in_channels // in_length, out_length, in_length, *kernel_size))
+        else:
+            self.weight = Parameter(
+                torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
             nn.init.xavier_uniform_(self.bias)
@@ -106,8 +130,9 @@ class CapsuleConv2d(nn.Module):
         nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.routing_type,
-                                self.num_iterations, self.bias, **self.kwargs)
+        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
+                                self.routing_type, self.num_iterations, self.bias, self.share_type, self.out_channels,
+                                **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -145,10 +170,13 @@ class CapsuleConvTranspose2d(nn.Module):
         padding (int or tuple, optional): zero-padding added to both sides of the input
         output_padding (int or tuple, optional): additional size added to one side of each dimension in the output shape
         dilation (int or tuple, optional): spacing between kernel elements
+        share_weight (bool, optional): if True, share weight between input capsules
         routing_type (str, optional): routing algorithm type
            -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
         bias (bool, optional):  if True, adds a learnable bias to the output
+        share_type (str, optional): share weight type
+           -- options: ['bottom', 'top']
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
@@ -204,14 +232,16 @@ class CapsuleConvTranspose2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0,
-                 output_padding=0, dilation=1, routing_type='k_means', num_iterations=3, bias=True, **kwargs):
+                 output_padding=0, dilation=1, share_weight=True, routing_type='k_means', num_iterations=3, bias=True,
+                 share_type='bottom', **kwargs):
         super(CapsuleConvTranspose2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
         if out_channels % out_length != 0:
             raise ValueError('Expected out_channels must be divisible by out_length.')
         if num_iterations < 1:
-            raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
+            raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
+
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -227,9 +257,11 @@ class CapsuleConvTranspose2d(nn.Module):
         self.padding = padding
         self.output_padding = output_padding
         self.dilation = dilation
+        self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
         self.kwargs = kwargs
+        self.share_type = share_type
         self.weight = Parameter(torch.Tensor(in_length, out_channels // out_length, out_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
@@ -248,7 +280,7 @@ class CapsuleConvTranspose2d(nn.Module):
         if len(output_size) == k + 2:
             output_size = output_size[-2:]
         if len(output_size) != k:
-            raise ValueError('output_size must have {} or {} elements (got {})'.format(k, k + 2, len(output_size)))
+            raise ValueError('output_size must have {} or {} elements (got {}).'.format(k, k + 2, len(output_size)))
 
         def dim_size(d):
             return (input.size(d + 2) - 1) * self.stride[d] - 2 * self.padding[d] + self.dilation[d] * (
@@ -259,7 +291,7 @@ class CapsuleConvTranspose2d(nn.Module):
         for size, min_size, max_size in zip(output_size, min_sizes, max_sizes):
             if size < min_size or size > max_size:
                 raise ValueError(
-                    'requested an output size of {}, but valid sizes range from {} to {} (for an input of {})'.format(
+                    'requested an output size of {}, but valid sizes range from {} to {} (for an input of {}).'.format(
                         output_size, min_sizes, max_sizes, input.size()[-2:]))
 
         return tuple([output_size[d] - min_sizes[d] for d in range(k)])
@@ -337,7 +369,7 @@ class CapsuleLinear(nn.Module):
                  routing_type='k_means', num_iterations=3, bias=True, share_type='bottom', **kwargs):
         super(CapsuleLinear, self).__init__()
         if num_iterations < 1:
-            raise ValueError('num_iterations has to be greater than 0, but got {}'.format(num_iterations))
+            raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
 
         self.out_capsules = out_capsules
         self.in_capsules = in_capsules

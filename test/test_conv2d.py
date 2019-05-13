@@ -31,8 +31,10 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
                         dtype=torch.double, requires_grad=True)
     x_gpu = x_cpu.detach().to('cuda').requires_grad_()
     w_gpu = w_cpu.detach().to('cuda').requires_grad_()
-    y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride, padding, dilation, routing_type, num_iterations, **kwargs)
-    y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride, padding, dilation, routing_type, num_iterations, **kwargs)
+    y_fast = CL.capsule_cov2d(x_gpu, w_gpu, stride, padding, dilation, routing_type=routing_type,
+                              num_iterations=num_iterations, **kwargs)
+    y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride, padding, dilation, routing_type=routing_type,
+                             num_iterations=num_iterations, **kwargs)
     assert y_fast.view(-1).tolist() == approx(y_ref.view(-1).tolist())
 
     go_cpu = torch.randn(y_ref.size(), dtype=torch.double)
@@ -61,7 +63,7 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
 def test_module(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
                 out_length, stride, padding, dilation, routing_type, kwargs, num_iterations):
     module = CapsuleConv2d(in_channels, out_channels, (kernel_size_h, kernel_size_w), in_length, out_length, stride,
-                           padding, dilation, routing_type, num_iterations, **kwargs)
+                           padding, dilation, routing_type=routing_type, num_iterations=num_iterations, **kwargs)
     x = torch.randn(batch_size, in_channels, height, width)
     y_cpu = module(x)
     y_cuda = module.to('cuda')(x.to('cuda'))
@@ -79,8 +81,10 @@ def test_multigpu(batch_size, height, width, in_channels, out_channels, kernel_s
                      requires_grad=True)
     w1 = torch.randn(out_channels // out_length, out_length, in_length, kernel_size_h, kernel_size_w, device='cuda:1',
                      requires_grad=True)
-    y0 = CL.capsule_cov2d(a0, w0, stride, padding, dilation, routing_type, num_iterations, **kwargs)
+    y0 = CL.capsule_cov2d(a0, w0, stride, padding, dilation, routing_type=routing_type, num_iterations=num_iterations,
+                          **kwargs)
     go = torch.randn(y0.size(), device='cuda:0')
     y0.backward(go)
-    y1 = CL.capsule_cov2d(a1, w1, stride, padding, dilation, routing_type, num_iterations, **kwargs)
+    y1 = CL.capsule_cov2d(a1, w1, stride, padding, dilation, routing_type=routing_type, num_iterations=num_iterations,
+                          **kwargs)
     y1.backward(go.detach().to('cuda:1'))
