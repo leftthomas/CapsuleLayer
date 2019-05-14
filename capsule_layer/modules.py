@@ -123,7 +123,7 @@ class CapsuleConv2d(nn.Module):
                 torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
-            nn.init.xavier_uniform_(self.bias)
+            nn.init.constant_(self.bias, 0)
         else:
             self.bias = None
 
@@ -265,7 +265,7 @@ class CapsuleConvTranspose2d(nn.Module):
         self.weight = Parameter(torch.Tensor(in_length, out_channels // out_length, out_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
-            nn.init.xavier_uniform_(self.bias)
+            nn.init.constant_(self.bias, 0)
         else:
             self.bias = None
 
@@ -399,7 +399,7 @@ class CapsuleLinear(nn.Module):
                 self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
         if bias:
             self.bias = Parameter(torch.Tensor(out_capsules, out_length))
-            nn.init.xavier_uniform_(self.bias)
+            nn.init.constant_(self.bias, 0)
         else:
             self.bias = None
 
