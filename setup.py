@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 
-long_description = "PyTorch Capsule Layer, include conv2d, conv_transpose2d and linear layers."
+long_description = "PyTorch Capsule Layer, include conv2d and linear layers."
 
 setup_info = dict(
     # Metadata

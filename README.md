@@ -1,5 +1,5 @@
 # Capsule Layer
-PyTorch Capsule Layer, include conv2d, conv_transpose2d and linear layers.
+PyTorch Capsule Layer, include conv2d and linear layers.
 
 ## Requirements
 * [Anaconda](https://www.anaconda.com/download/)
@@ -35,28 +35,6 @@ import torch
 from capsule_layer import CapsuleConv2d
 x = torch.randn(4, 8, 28, 50)
 module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means', bias=False)
-if torch.cuda.is_available():
-    x, module = x.to('cuda'), module.to('cuda')
-y = module(x)
-```
-
-### CapsuleConvTranspose2d
-```python
-import torch
-from capsule_layer import capsule_conv_transpose2d
-x = torch.randn(20, 16, 50, 100)
-w = torch.randn(4, 4, 8, 3, 5)
-if torch.cuda.is_available():
-    x, w = x.to('cuda'), w.to('cuda')
-# routing_type options: ['dynamic', 'k_means']
-y = capsule_conv_transpose2d(x, w, routing_type='k_means')
-```
-or with modules interface:
-```python
-import torch
-from capsule_layer import CapsuleConvTranspose2d
-x = torch.randn(20, 16, 50, 100)
-module = CapsuleConvTranspose2d(in_channels=16, out_channels=32, kernel_size=(3, 5), in_length=4, out_length=8, bias=False)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
 y = module(x)
