@@ -157,18 +157,18 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         return out
 
 
-def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob=False, softmax_dim=-3):
+def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob=False, softmax_dim=-2):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=softmax_dim)
         output = (probs * input).sum(dim=-2, keepdim=True)
-        if bias is not None:
-            output = output + bias
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
+    if bias is not None:
+        output = output + bias
     if squash:
         if return_prob:
             return _squash(output).squeeze(dim=-2), probs.mean(dim=-1)
@@ -182,10 +182,10 @@ def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob
 
 
 def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash=True, return_prob=False,
-                    softmax_dim=-3):
+                    softmax_dim=-2):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
-    output = input.sum(dim=-2, keepdim=True) / input.size(-3)
+    output = input.sum(dim=-2, keepdim=True) / input.size(-2)
     for r in range(num_iterations):
         if similarity == 'dot':
             logits = (input * F.normalize(output, p=2, dim=-1)).sum(dim=-1, keepdim=True)
@@ -200,8 +200,8 @@ def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=softmax_dim)
         output = (probs * input).sum(dim=-2, keepdim=True)
-        if bias is not None:
-            output = output + bias
+    if bias is not None:
+        output = output + bias
     if squash:
         if return_prob:
             return _squash(output).squeeze(dim=-2), probs.squeeze(dim=-1)
