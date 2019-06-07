@@ -157,12 +157,12 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         return out
 
 
-def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob=False, softmax_dim=-2):
+def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob=False):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
-        probs = F.softmax(logits, dim=softmax_dim)
+        probs = F.softmax(logits, dim=-3)
         output = (probs * input).sum(dim=-2, keepdim=True)
         if r != num_iterations - 1:
             output = _squash(output)
@@ -181,11 +181,10 @@ def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob
             return output.squeeze(dim=-2)
 
 
-def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash=True, return_prob=False,
-                    softmax_dim=-2):
+def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash=True, return_prob=False):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
-    output = input.sum(dim=-2, keepdim=True) / input.size(-2)
+    output = input.sum(dim=-2, keepdim=True) / input.size(-3)
     for r in range(num_iterations):
         if similarity == 'dot':
             logits = (input * F.normalize(output, p=2, dim=-1)).sum(dim=-1, keepdim=True)
@@ -198,7 +197,7 @@ def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash
         else:
             raise NotImplementedError(
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
-        probs = F.softmax(logits, dim=softmax_dim)
+        probs = F.softmax(logits, dim=-3)
         output = (probs * input).sum(dim=-2, keepdim=True)
     if bias is not None:
         output = output + bias

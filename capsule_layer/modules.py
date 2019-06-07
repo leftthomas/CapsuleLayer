@@ -35,7 +35,6 @@ class CapsuleConv2d(nn.Module):
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
            - squash (bool, optional): squash output capsules or not, it works for all routing
            - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
-           - softmax_dim (int, optional): specify the softmax dim between capsules, it works for all routing
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -151,7 +150,6 @@ class CapsuleLinear(nn.Module):
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
             - squash (bool, optional): squash output capsules or not, it works for all routing
             - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
-            - softmax_dim (int, optional): specify the softmax dim between capsules, it works for all routing
 
      Shape:
          - Input: (Tensor): (N, in_capsules, in_length)

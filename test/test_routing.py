@@ -5,11 +5,10 @@ from pytest import approx
 from capsule_layer.functional import dynamic_routing, k_means_routing
 
 kwargs_data = {
-    'dynamic': [{'squash': squash, 'return_prob': return_prob, 'softmax_dim': softmax_dim} for squash in [True, False]
-                for return_prob in [True, False] for softmax_dim in [-2, -3]],
-    'k_means': [{'similarity': similarity, 'squash': squash, 'return_prob': return_prob, 'softmax_dim': softmax_dim} for
-                similarity in ['dot', 'cosine', 'tonimoto', 'pearson'] for squash in [True, False] for return_prob in
-                [True, False] for softmax_dim in [-2, -3]]
+    'dynamic': [{'squash': squash, 'return_prob': return_prob} for squash in [True, False] for return_prob in
+                [True, False]],
+    'k_means': [{'similarity': similarity, 'squash': squash, 'return_prob': return_prob} for similarity in
+                ['dot', 'cosine', 'tonimoto', 'pearson'] for squash in [True, False] for return_prob in [True, False]]
 }
 routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing}
 
