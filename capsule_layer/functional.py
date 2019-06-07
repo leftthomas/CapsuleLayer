@@ -164,11 +164,11 @@ def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-3)
         output = (probs * input).sum(dim=-2, keepdim=True)
+        if bias is not None:
+            output = output + bias
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
-    if bias is not None:
-        output = output + bias
     if squash:
         if return_prob:
             return _squash(output).squeeze(dim=-2), probs.mean(dim=-1)
@@ -199,8 +199,8 @@ def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=-3)
         output = (probs * input).sum(dim=-2, keepdim=True)
-    if bias is not None:
-        output = output + bias
+        if bias is not None:
+            output = output + bias
     if squash:
         if return_prob:
             return _squash(output).squeeze(dim=-2), probs.squeeze(dim=-1)
