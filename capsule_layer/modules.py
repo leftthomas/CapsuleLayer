@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch import nn
 from torch.nn.modules.utils import _pair
@@ -113,17 +111,11 @@ class CapsuleConv2d(nn.Module):
                 torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
+            nn.init.zeros_(self.bias)
         else:
             self.bias = None
 
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.bias is not None:
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
-            bound = 1 / math.sqrt(fan_in)
-            nn.init.uniform_(self.bias, -bound, bound)
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
@@ -209,17 +201,11 @@ class CapsuleLinear(nn.Module):
                 self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
         if bias:
             self.bias = Parameter(torch.Tensor(out_capsules, out_length))
+            nn.init.zeros_(self.bias)
         else:
             self.bias = None
 
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.bias is not None:
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
-            bound = 1 / math.sqrt(fan_in)
-            nn.init.uniform_(self.bias, -bound, bound)
+        nn.init.xavier_normal_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
