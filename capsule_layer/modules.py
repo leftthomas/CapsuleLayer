@@ -115,7 +115,7 @@ class CapsuleConv2d(nn.Module):
         else:
             self.bias = None
 
-        nn.init.normal_(self.weight, std=0.1)
+        nn.init.normal_(self.weight)
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
@@ -205,7 +205,7 @@ class CapsuleLinear(nn.Module):
         else:
             self.bias = None
 
-        nn.init.normal_(self.weight, std=0.1)
+        nn.init.normal_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
