@@ -111,11 +111,11 @@ class CapsuleConv2d(nn.Module):
                 torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
         if bias:
             self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
-            nn.init.xavier_uniform_(self.bias, 0)
+            nn.init.zeros_(self.bias)
         else:
             self.bias = None
 
-        nn.init.xavier_uniform_(self.weight)
+        nn.init.ones_(self.weight)
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
@@ -201,11 +201,11 @@ class CapsuleLinear(nn.Module):
                 self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
         if bias:
             self.bias = Parameter(torch.Tensor(out_capsules, out_length))
-            nn.init.xavier_uniform_(self.bias, 0)
+            nn.init.zeros_(self.bias)
         else:
             self.bias = None
 
-        nn.init.xavier_uniform_(self.weight)
+        nn.init.ones_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
