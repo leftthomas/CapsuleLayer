@@ -193,24 +193,19 @@ class CapsuleLinear(nn.Module):
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
-                self.weight = Parameter(nn.init.xavier_uniform(torch.Tensor(in_length, out_capsules * out_length))
-                                        .view(in_length, out_capsules, out_length).permute(1, 2, 0).contiguous())
-                # self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
+                self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                self.weight = Parameter(
-                    nn.init.xavier_uniform(torch.Tensor(in_capsules, in_length, out_capsules * out_length))
-                    .view(in_capsules, in_length, out_capsules, out_length).permute(2, 0, 3, 1).contiguous())
-                # self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
+                self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
         if bias:
             self.bias = Parameter(torch.Tensor(out_capsules, out_length))
             nn.init.zeros_(self.bias)
         else:
             self.bias = None
 
-        # nn.init.xavier_uniform_(self.weight)
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
