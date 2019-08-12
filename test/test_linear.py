@@ -2,7 +2,6 @@ from functools import partial
 
 import pytest
 import torch
-from pytest import approx
 from torch.autograd import gradcheck
 
 import capsule_layer as CL
@@ -33,7 +32,7 @@ def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, 
     w_gpu = w_cpu.detach().to('cuda').requires_grad_()
     y_fast = CL.capsule_linear(x_gpu, w_gpu, share_weight, routing_type, num_iterations, **kwargs)
     y_ref = CL.capsule_linear(x_cpu, w_cpu, share_weight, routing_type, num_iterations, **kwargs)
-    assert y_fast.view(-1).tolist() == approx(y_ref.view(-1).tolist())
+    assert torch.allclose(y_fast.cpu(), y_ref)
 
     go_cpu = torch.randn(y_ref.size(), dtype=torch.double)
     go_gpu = go_cpu.detach().to('cuda')
@@ -51,8 +50,8 @@ def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, 
         partial(CL.capsule_linear, share_weight=share_weight, routing_type=routing_type, num_iterations=num_iterations,
                 **kwargs), (x_cpu, w_cpu))
 
-    assert gx_fast.view(-1).tolist() == approx(gx_ref.view(-1).tolist())
-    assert gw_fast.view(-1).tolist() == approx(gw_ref.view(-1).tolist())
+    assert torch.allclose(gx_fast.cpu(), gx_ref)
+    assert torch.allclose(gw_fast.cpu(), gw_ref)
 
 
 @pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, '
@@ -68,7 +67,7 @@ def test_module(batch_size, in_capsules, out_capsules, in_length, out_length, ro
     x = torch.randn(batch_size, in_capsules, in_length)
     y_cpu = module(x)
     y_cuda = module.to('cuda')(x.to('cuda'))
-    assert y_cuda.view(-1).tolist() == approx(y_cpu.view(-1).tolist(), abs=1e-5)
+    assert torch.allclose(y_cuda.cpu(), y_cpu)
 
 
 @pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, '

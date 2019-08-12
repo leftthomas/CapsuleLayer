@@ -2,7 +2,6 @@ from functools import partial
 
 import pytest
 import torch
-from pytest import approx
 from torch.autograd import gradcheck
 
 import capsule_layer as CL
@@ -35,7 +34,7 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
                               num_iterations=num_iterations, **kwargs)
     y_ref = CL.capsule_cov2d(x_cpu, w_cpu, stride, padding, dilation, routing_type=routing_type,
                              num_iterations=num_iterations, **kwargs)
-    assert y_fast.view(-1).tolist() == approx(y_ref.view(-1).tolist())
+    assert torch.allclose(y_fast.cpu(), y_ref)
 
     go_cpu = torch.randn(y_ref.size(), dtype=torch.double)
     go_gpu = go_cpu.detach().to('cuda')
@@ -53,8 +52,8 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
         partial(CL.capsule_cov2d, stride=stride, padding=padding, dilation=dilation, routing_type=routing_type,
                 num_iterations=num_iterations, **kwargs), (x_cpu, w_cpu))
 
-    assert gx_fast.view(-1).tolist() == approx(gx_ref.view(-1).tolist())
-    assert gw_fast.view(-1).tolist() == approx(gw_ref.view(-1).tolist())
+    assert torch.allclose(gx_fast.cpu(), gx_ref)
+    assert torch.allclose(gw_fast.cpu(), gw_ref)
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '
@@ -67,7 +66,7 @@ def test_module(batch_size, height, width, in_channels, out_channels, kernel_siz
     x = torch.randn(batch_size, in_channels, height, width)
     y_cpu = module(x)
     y_cuda = module.to('cuda')(x.to('cuda'))
-    assert y_cuda.view(-1).tolist() == approx(y_cpu.view(-1).tolist(), abs=1e-5)
+    assert torch.allclose(y_cuda.cpu(), y_cpu)
 
 
 @pytest.mark.parametrize('batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, '

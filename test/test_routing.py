@@ -1,6 +1,5 @@
 import pytest
 import torch
-from pytest import approx
 
 from capsule_layer.functional import dynamic_routing, k_means_routing
 
@@ -25,9 +24,9 @@ def test_routing(batch_size, in_capsules, out_capsules, out_length, routing_type
     if kwargs['return_prob']:
         y_cpu, prob_cpu = routing_funcs[routing_type](x, num_iterations=num_iterations, **kwargs)
         y_cuda, prob_cuda = routing_funcs[routing_type](x.to('cuda'), num_iterations=num_iterations, **kwargs)
-        assert y_cuda.view(-1).tolist() == approx(y_cpu.view(-1).tolist())
-        assert prob_cuda.view(-1).tolist() == approx(prob_cpu.view(-1).tolist())
+        assert torch.allclose(y_cuda.cpu(), y_cpu)
+        assert torch.allclose(prob_cuda.cpu(), prob_cpu)
     else:
         y_cpu = routing_funcs[routing_type](x, num_iterations=num_iterations, **kwargs)
         y_cuda = routing_funcs[routing_type](x.to('cuda'), num_iterations=num_iterations, **kwargs)
-        assert y_cuda.view(-1).tolist() == approx(y_cpu.view(-1).tolist())
+        assert torch.allclose(y_cuda.cpu(), y_cpu)
