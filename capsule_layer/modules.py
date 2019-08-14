@@ -105,17 +105,18 @@ class CapsuleConv2d(nn.Module):
         self.kwargs = kwargs
 
         if self.share_weight:
-            self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+            weight = torch.randn(out_channels // out_length, out_length, 1, *kernel_size)
+            weight = weight.repeat_interleave(in_length, dim=2)
+            self.weight = Parameter(weight)
         else:
-            self.weight = Parameter(
-                torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
+            weight = torch.randn(out_channels // out_length, 1, out_length, 1, *kernel_size)
+            weight = weight.repeat_interleave(in_length, dim=3)
+            weight = weight.repeat_interleave(in_channels // in_length, dim=1)
+            self.weight = Parameter(weight)
         if bias:
-            self.bias = Parameter(torch.Tensor(out_channels // out_length, out_length))
-            nn.init.zeros_(self.bias)
+            self.bias = Parameter(torch.zeros(out_channels // out_length, out_length))
         else:
             self.bias = None
-
-        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
@@ -169,11 +170,11 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> import torch
          >>> from capsule_layer import CapsuleLinear
-         >>> m = CapsuleLinear(30, 8, 16, routing_type = 'dynamic', num_iterations=5)
-         >>> input = torch.randn(5, 20, 8)
+         >>> m = CapsuleLinear(3, 4, 5, 6, share_weight=False, routing_type = 'dynamic', num_iterations=5)
+         >>> input = torch.randn(2, 6, 4)
          >>> output = m(input)
          >>> print(output.size())
-         torch.Size([5, 30, 16])
+         torch.Size([2, 3, 5])
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
@@ -193,19 +194,21 @@ class CapsuleLinear(nn.Module):
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
-                self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
+                weight = torch.randn(out_capsules, out_length, 1)
+                weight = weight.repeat_interleave(in_length, dim=-1)
+                self.weight = Parameter(weight)
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
+                weight = torch.randn(out_capsules, 1, out_length, 1)
+                weight = weight.repeat_interleave(in_length, dim=-1)
+                weight = weight.repeat_interleave(in_capsules, dim=1)
+                self.weight = Parameter(weight)
         if bias:
-            self.bias = Parameter(torch.Tensor(out_capsules, out_length))
-            nn.init.zeros_(self.bias)
+            self.bias = Parameter(torch.zeros(out_capsules, out_length))
         else:
             self.bias = None
-
-        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
