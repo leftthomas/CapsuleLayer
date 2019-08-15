@@ -105,11 +105,11 @@ class CapsuleConv2d(nn.Module):
         self.kwargs = kwargs
 
         if self.share_weight:
-            weight = torch.randn(out_channels // out_length, out_length, 1, *kernel_size)
+            weight = torch.rand(out_channels // out_length, out_length, 1, *kernel_size)
             weight = weight.repeat_interleave(in_length, dim=2)
             self.weight = Parameter(weight)
         else:
-            weight = torch.randn(out_channels // out_length, 1, out_length, 1, *kernel_size)
+            weight = torch.rand(out_channels // out_length, 1, out_length, 1, *kernel_size)
             weight = weight.repeat_interleave(in_length, dim=3)
             weight = weight.repeat_interleave(in_channels // in_length, dim=1)
             self.weight = Parameter(weight)
@@ -194,14 +194,14 @@ class CapsuleLinear(nn.Module):
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
-                weight = torch.randn(out_capsules, out_length, 1)
+                weight = torch.rand(out_capsules, out_length, 1)
                 weight = weight.repeat_interleave(in_length, dim=-1)
                 self.weight = Parameter(weight)
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                weight = torch.randn(out_capsules, 1, out_length, 1)
+                weight = torch.rand(out_capsules, 1, out_length, 1)
                 weight = weight.repeat_interleave(in_length, dim=-1)
                 weight = weight.repeat_interleave(in_capsules, dim=1)
                 self.weight = Parameter(weight)
