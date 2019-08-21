@@ -194,16 +194,20 @@ class CapsuleLinear(nn.Module):
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
-                weight = torch.rand(out_capsules, out_length, 1)
-                weight = weight.repeat_interleave(in_length, dim=-1)
+                weight = torch.rand(1, in_length, out_capsules * out_length)
+                nn.init.xavier_uniform_(weight)
+                weight = weight.permute(2, 1, 0).contiguous()
+                weight = weight.view(out_capsules, out_length, in_length)
                 self.weight = Parameter(weight)
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                weight = torch.rand(out_capsules, 1, out_length, 1)
-                weight = weight.repeat_interleave(in_length, dim=-1)
-                weight = weight.repeat_interleave(in_capsules, dim=1)
+                weight = torch.rand(in_capsules, in_length, out_capsules * out_length)
+                nn.init.xavier_uniform_(weight)
+                weight = weight.permute(2, 0, 1).contiguous()
+                weight = weight.view(out_capsules, out_length, in_capsules, in_length)
+                weight = weight.permute(0, 2, 1, 3).contiguous()
                 self.weight = Parameter(weight)
         if bias:
             self.bias = Parameter(torch.zeros(out_capsules, out_length))
