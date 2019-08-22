@@ -30,10 +30,10 @@ class CapsuleConv2d(nn.Module):
            -- options: ['dynamic', 'k_means']
         num_iterations (int, optional): number of routing iterations
         bias (bool, optional):  if True, adds a learnable bias to the output
+        squash (bool, optional): squash output capsules or not, it works for all routing
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
-           - squash (bool, optional): squash output capsules or not, it works for all routing
            - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
 
     Shape:
@@ -77,7 +77,7 @@ class CapsuleConv2d(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
-                 share_weight=True, routing_type='k_means', num_iterations=3, bias=True, **kwargs):
+                 share_weight=True, routing_type='k_means', num_iterations=3, bias=True, squash=True, **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -102,6 +102,7 @@ class CapsuleConv2d(nn.Module):
         self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
+        self.squash = squash
         self.kwargs = kwargs
 
         if self.share_weight:
@@ -120,7 +121,7 @@ class CapsuleConv2d(nn.Module):
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
-                                self.routing_type, self.num_iterations, self.bias, **self.kwargs)
+                                self.routing_type, self.num_iterations, self.bias, self.squash, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -146,10 +147,10 @@ class CapsuleLinear(nn.Module):
             -- options: ['dynamic', 'k_means']
          num_iterations (int, optional): number of routing iterations
          bias (bool, optional):  if True, adds a learnable bias to the output
+         squash (bool, optional): squash output capsules or not, it works for all routing
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
-            - squash (bool, optional): squash output capsules or not, it works for all routing
             - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
 
      Shape:
@@ -170,7 +171,7 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> import torch
          >>> from capsule_layer import CapsuleLinear
-         >>> m = CapsuleLinear(3, 4, 5, 6, share_weight=False, routing_type = 'dynamic', num_iterations=5)
+         >>> m = CapsuleLinear(3, 4, 5, 6, share_weight=False, num_iterations=5, return_prob=True, squash=False)
          >>> input = torch.randn(2, 6, 4)
          >>> output = m(input)
          >>> print(output.size())
@@ -178,7 +179,7 @@ class CapsuleLinear(nn.Module):
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='k_means', num_iterations=3, bias=True, **kwargs):
+                 routing_type='k_means', num_iterations=3, bias=True, squash=True, **kwargs):
         super(CapsuleLinear, self).__init__()
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
@@ -188,6 +189,7 @@ class CapsuleLinear(nn.Module):
         self.share_weight = share_weight
         self.routing_type = routing_type
         self.num_iterations = num_iterations
+        self.squash = squash
         self.kwargs = kwargs
 
         if self.share_weight:
@@ -216,7 +218,7 @@ class CapsuleLinear(nn.Module):
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
-                                 self.bias, **self.kwargs)
+                                 self.bias, self.squash, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \

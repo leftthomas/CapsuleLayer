@@ -70,7 +70,7 @@ import capsule_layer.functional as F
 x = torch.randn(64, 10, 128, 8)
 if torch.cuda.is_available():
     x = x.to('cuda')
-y, prob = F.dynamic_routing(x, num_iterations=10, squash=False, return_prob=True)
+y, prob = F.dynamic_routing(x, num_iterations=10, return_prob=True)
 ```
 * k-means routing
 ```python

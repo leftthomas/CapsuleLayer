@@ -6,7 +6,7 @@ from torch.nn.modules.utils import _pair
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=True, routing_type='k_means',
-                  num_iterations=3, bias=None, **kwargs):
+                  num_iterations=3, bias=None, squash=True, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 5):
@@ -86,6 +86,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
+    out = _squash(out) if squash is True else out
     # [batch_size, out_height, out_width, out_channels]
     out = out.view(*out.size()[:3], -1)
     # [batch_size, out_channels, out_height, out_width]
@@ -96,7 +97,8 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
         return out
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None, **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None, squash=True,
+                   **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -151,13 +153,14 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
+    out = _squash(out) if squash is True else out
     if kwargs.__contains__('return_prob') and kwargs['return_prob']:
         return out, probs
     else:
         return out
 
 
-def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob=False):
+def dynamic_routing(input, bias=None, num_iterations=3, return_prob=False):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     logits = torch.zeros_like(input)
@@ -169,19 +172,13 @@ def dynamic_routing(input, bias=None, num_iterations=3, squash=True, return_prob
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
-    if squash:
-        if return_prob:
-            return _squash(output).squeeze(dim=-2), probs.mean(dim=-1)
-        else:
-            return _squash(output).squeeze(dim=-2)
+    if return_prob:
+        return output.squeeze(dim=-2), probs.mean(dim=-1)
     else:
-        if return_prob:
-            return output.squeeze(dim=-2), probs.mean(dim=-1)
-        else:
-            return output.squeeze(dim=-2)
+        return output.squeeze(dim=-2)
 
 
-def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash=True, return_prob=False):
+def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', return_prob=False):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     output = input.sum(dim=-2, keepdim=True) / input.size(-3)
@@ -201,16 +198,10 @@ def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', squash
         output = (probs * input).sum(dim=-2, keepdim=True)
         if bias is not None:
             output = output + bias
-    if squash:
-        if return_prob:
-            return _squash(output).squeeze(dim=-2), probs.squeeze(dim=-1)
-        else:
-            return _squash(output).squeeze(dim=-2)
+    if return_prob:
+        return output.squeeze(dim=-2), probs.squeeze(dim=-1)
     else:
-        if return_prob:
-            return output.squeeze(dim=-2), probs.squeeze(dim=-1)
-        else:
-            return output.squeeze(dim=-2)
+        return output.squeeze(dim=-2)
 
 
 def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):

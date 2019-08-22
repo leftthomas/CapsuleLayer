@@ -4,10 +4,9 @@ import torch
 from capsule_layer.functional import dynamic_routing, k_means_routing
 
 kwargs_data = {
-    'dynamic': [{'squash': squash, 'return_prob': return_prob} for squash in [True, False] for return_prob in
-                [True, False]],
-    'k_means': [{'similarity': similarity, 'squash': squash, 'return_prob': return_prob} for similarity in
-                ['dot', 'cosine', 'tonimoto', 'pearson'] for squash in [True, False] for return_prob in [True, False]]
+    'dynamic': [{'return_prob': return_prob} for return_prob in [True, False]],
+    'k_means': [{'similarity': similarity, 'return_prob': return_prob} for similarity in
+                ['dot', 'cosine', 'tonimoto', 'pearson'] for return_prob in [True, False]]
 }
 routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing}
 
