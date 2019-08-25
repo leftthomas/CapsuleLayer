@@ -112,7 +112,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
     # obtain original probs
-    re_weight = weight.view(-1, *weight.size()[-2:])
+    re_weight = weight.view(-1, *weight.size()[-2:]).detach()
     re_weight = torch.stack([torch.pinverse(w) for w in re_weight], dim=0)
     if share_weight:
         re_weight = re_weight.view(weight.size(0), *re_weight.size()[-2:])
