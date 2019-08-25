@@ -120,9 +120,9 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     else:
         re_weight = re_weight.view(*weight.size()[:2], *re_weight.size()[-2:])
         revers = (re_weight[None, :, :, :, :] @ out.detach()[:, :, :, :, None]).squeeze(dim=-1)
-    probs = (revers / input[:, None, :, :]).mean(dim=-1)
+    original_probs = (revers / input[:, None, :, :]).mean(dim=-1)
     out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
-    return out, probs
+    return out, original_probs
 
 
 def dynamic_routing(input, num_iterations=3, reduce=True):
