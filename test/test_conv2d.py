@@ -78,11 +78,9 @@ def test_multigpu(batch_size, height, width, in_channels, out_channels, kernel_s
     w1 = torch.randn(out_channels // out_length, out_length, in_length, kernel_size_h, kernel_size_w, device='cuda:1',
                      requires_grad=True)
     y0, prob0 = CL.capsule_cov2d(a0, w0, stride, padding, dilation, routing_type=routing_type,
-                                 num_iterations=num_iterations,
-                                 squash=squash)
+                                 num_iterations=num_iterations, squash=squash)
     go = torch.randn(y0.size(), device='cuda:0')
     y0.backward(go)
     y1, prob1 = CL.capsule_cov2d(a1, w1, stride, padding, dilation, routing_type=routing_type,
-                                 num_iterations=num_iterations,
-                                 squash=squash)
+                                 num_iterations=num_iterations, squash=squash)
     y1.backward(go.detach().to('cuda:1'))

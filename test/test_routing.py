@@ -18,7 +18,7 @@ test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, k
                          test_data)
 def test_routing(batch_size, in_capsules, out_capsules, out_length, routing_type, kwargs, num_iterations):
     x = torch.randn(batch_size, out_capsules, in_capsules, out_length, dtype=torch.double)
-    y_cpu, prob_cpu = routing_funcs[routing_type](x, num_iterations=num_iterations, **kwargs)
-    y_cuda, prob_cuda = routing_funcs[routing_type](x.to('cuda'), num_iterations=num_iterations, **kwargs)
+    y_cpu, prob_cpu = routing_funcs[routing_type](x, num_iterations, **kwargs)
+    y_cuda, prob_cuda = routing_funcs[routing_type](x.to('cuda'), num_iterations, **kwargs)
     assert torch.allclose(y_cuda.cpu(), y_cpu)
     assert torch.allclose(prob_cuda.cpu(), prob_cpu)

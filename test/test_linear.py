@@ -25,8 +25,8 @@ def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, 
         w_cpu = torch.randn(out_capsules, in_capsules, out_length, in_length, dtype=torch.double, requires_grad=True)
     x_gpu = x_cpu.detach().to('cuda').requires_grad_()
     w_gpu = w_cpu.detach().to('cuda').requires_grad_()
-    y_fast, prob_fast = CL.capsule_linear(x_gpu, w_gpu, share_weight, routing_type, num_iterations, squash=squash)
-    y_ref, prob_ref = CL.capsule_linear(x_cpu, w_cpu, share_weight, routing_type, num_iterations, squash=squash)
+    y_fast, prob_fast = CL.capsule_linear(x_gpu, w_gpu, share_weight, routing_type, num_iterations, squash)
+    y_ref, prob_ref = CL.capsule_linear(x_cpu, w_cpu, share_weight, routing_type, num_iterations, squash)
     assert torch.allclose(y_fast.cpu(), y_ref)
     assert torch.allclose(prob_fast.cpu(), prob_ref)
 
@@ -56,7 +56,7 @@ def test_module(batch_size, in_capsules, out_capsules, in_length, out_length, ro
                 num_iterations, squash):
     num_in_capsules = None if share_weight else in_capsules
     module = CapsuleLinear(out_capsules, in_length, out_length, num_in_capsules, share_weight, routing_type,
-                           num_iterations, squash=squash)
+                           num_iterations, squash)
     x = torch.randn(batch_size, in_capsules, in_length)
     y_cpu, prob_cpu = module(x)
     y_cuda, prob_cuda = module.to('cuda')(x.to('cuda'))
@@ -76,8 +76,8 @@ def test_multigpu(batch_size, in_capsules, out_capsules, in_length, out_length, 
     else:
         w0 = torch.randn(out_capsules, in_capsules, out_length, in_length, device='cuda:0', requires_grad=True)
         w1 = torch.randn(out_capsules, in_capsules, out_length, in_length, device='cuda:1', requires_grad=True)
-    y0, prob0 = CL.capsule_linear(a0, w0, share_weight, routing_type, num_iterations, squash=squash)
+    y0, prob0 = CL.capsule_linear(a0, w0, share_weight, routing_type, num_iterations, squash)
     go = torch.randn(y0.size(), device='cuda:0')
     y0.backward(go)
-    y1, prob1 = CL.capsule_linear(a1, w1, share_weight, routing_type, num_iterations, squash=squash)
+    y1, prob1 = CL.capsule_linear(a1, w1, share_weight, routing_type, num_iterations, squash)
     y1.backward(go.detach().to('cuda:1'))

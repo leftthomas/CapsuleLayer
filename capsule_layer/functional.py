@@ -6,7 +6,7 @@ from torch.nn.modules.utils import _pair
 
 
 def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=True, routing_type='k_means',
-                  num_iterations=3, bias=None, squash=True, **kwargs):
+                  num_iterations=3, squash=True, **kwargs):
     if input.dim() != 4:
         raise ValueError('Expected 4D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 5):
@@ -28,22 +28,6 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
         raise ValueError('Expected input tensor has the same in_channels as weight tensor, got {} in_channels '
                          'in input tensor, {} in_channels in weight tensor.'.format(input.size(1),
                                                                                     weight.size(1) * weight.size(3)))
-    if bias is not None:
-        if bias.dim() != 2:
-            raise ValueError('Expected 2D tensor as bias, got {}D tensor instead.'.format(bias.dim()))
-        if share_weight and (bias.size(0) * bias.size(1)) != (weight.size(0) * weight.size(1)):
-            raise ValueError('Expected bias tensor has the same out_channels as weight tensor, got {} out_channels '
-                             'in bias tensor, {} out_channels in weight tensor.'.format(bias.size(0) * bias.size(1),
-                                                                                        weight.size(0) * weight.size(
-                                                                                            1)))
-        if not share_weight and (bias.size(0) * bias.size(1)) != (weight.size(0) * weight.size(2)):
-            raise ValueError('Expected bias tensor has the same out_channels as weight tensor, got {} out_channels '
-                             'in bias tensor, {} out_channels in weight tensor.'.format(bias.size(0) * bias.size(1),
-                                                                                        weight.size(0) * weight.size(
-                                                                                            2)))
-        if bias.size(-1) != weight.size(-4):
-            raise ValueError('Expected bias tensor has the same out_length as weight tensor, got {} out_length '
-                             'in bias tensor, {} out_length in weight tensor.'.format(bias.size(-1), weight.size(-4)))
 
     kernel_size = (weight.size(-2), weight.size(-1))
     stride = _pair(stride)
@@ -68,17 +52,14 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     out_h = math.floor((input.size(2) + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0] + 1)
     out_w = math.floor((input.size(3) + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1)
     priors = priors.view(priors.size(0), out_h, out_w, *priors.size()[-3:])
-    if bias is not None:
-        bias = bias.view(1, 1, 1, 1, *bias.size())
-        bias = bias.permute(0, 1, 2, 4, 3, 5).contiguous()
 
     # fix reduce as False
     kwargs['reduce'] = False
     if routing_type == 'dynamic':
         # [batch_size, out_height, out_width, out_capsules, in_capsules, out_length]
-        out, probs = dynamic_routing(priors, bias, num_iterations, **kwargs)
+        out, probs = dynamic_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'k_means':
-        out, probs = k_means_routing(priors, bias, num_iterations, **kwargs)
+        out, probs = k_means_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
@@ -91,8 +72,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     return out, probs
 
 
-def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None, squash=True,
-                   **kwargs):
+def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, squash=True, **kwargs):
     if input.dim() != 3:
         raise ValueError('Expected 3D tensor as input, got {}D tensor instead.'.format(input.dim()))
     if share_weight and (weight.dim() != 3):
@@ -114,32 +94,20 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
                          'in input tensor, in_length {} in weight tensor.'.format(input.size(-1), weight.size(-1)))
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
-    if bias is not None:
-        if bias.dim() != 2:
-            raise ValueError('Expected 2D tensor as bias, got {}D tensor instead.'.format(bias.dim()))
-        if bias.size(0) != weight.size(0):
-            raise ValueError('Expected bias tensor has the same out_capsules as weight tensor, got {} out_capsules '
-                             'in bias tensor, {} out_capsules in weight tensor.'.format(bias.size(0), weight.size(0)))
-        if bias.size(-1) != weight.size(-2):
-            raise ValueError('Expected bias tensor has the same out_length as weight tensor, got {} out_length '
-                             'in bias tensor, {} out_length in weight tensor.'.format(bias.size(-1), weight.size(-2)))
 
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
         priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
-    if bias is not None:
-        bias = bias.view(1, *bias.size(), 1)
-        bias = bias.permute(0, 1, 3, 2).contiguous()
 
     # fix reduce as False
     kwargs['reduce'] = False
     if routing_type == 'dynamic':
         # [batch_size, out_capsules, in_capsules, out_length]
-        out, probs = dynamic_routing(priors, bias, num_iterations, **kwargs)
+        out, probs = dynamic_routing(priors, num_iterations, **kwargs)
     elif routing_type == 'k_means':
-        out, probs = k_means_routing(priors, bias, num_iterations, **kwargs)
+        out, probs = k_means_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
@@ -148,7 +116,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     return out, probs
 
 
-def dynamic_routing(input, bias=None, num_iterations=3, reduce=True):
+def dynamic_routing(input, num_iterations=3, reduce=True):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     logits = torch.zeros_like(input)
@@ -158,15 +126,13 @@ def dynamic_routing(input, bias=None, num_iterations=3, reduce=True):
             output = (probs * input)
         else:
             output = (probs * input).sum(dim=-2, keepdim=True)
-        if bias is not None:
-            output = output + bias
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
     return output.squeeze(dim=-2) if reduce else output, probs.mean(dim=-1)
 
 
-def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', reduce=True):
+def k_means_routing(input, num_iterations=3, similarity='dot', reduce=True):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     output = input.sum(dim=-2, keepdim=True) / input.size(-3)
@@ -187,8 +153,6 @@ def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', reduce
             output = (probs * input)
         else:
             output = (probs * input).sum(dim=-2, keepdim=True)
-        if bias is not None:
-            output = output + bias
     return output.squeeze(dim=-2) if reduce else output, probs.squeeze(dim=-1)
 
 
