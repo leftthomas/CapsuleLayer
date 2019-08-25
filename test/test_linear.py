@@ -25,9 +25,10 @@ def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, 
         w_cpu = torch.randn(out_capsules, in_capsules, out_length, in_length, dtype=torch.double, requires_grad=True)
     x_gpu = x_cpu.detach().to('cuda').requires_grad_()
     w_gpu = w_cpu.detach().to('cuda').requires_grad_()
-    y_fast = CL.capsule_linear(x_gpu, w_gpu, share_weight, routing_type, num_iterations, squash=squash)
-    y_ref = CL.capsule_linear(x_cpu, w_cpu, share_weight, routing_type, num_iterations, squash=squash)
+    y_fast, prob_fast = CL.capsule_linear(x_gpu, w_gpu, share_weight, routing_type, num_iterations, squash=squash)
+    y_ref, prob_ref = CL.capsule_linear(x_cpu, w_cpu, share_weight, routing_type, num_iterations, squash=squash)
     assert torch.allclose(y_fast.cpu(), y_ref)
+    assert torch.allclose(prob_fast.cpu(), prob_ref)
 
     go_cpu = torch.randn(y_ref.size(), dtype=torch.double)
     go_gpu = go_cpu.detach().to('cuda')
@@ -53,16 +54,14 @@ def test_function(batch_size, in_capsules, out_capsules, in_length, out_length, 
                          'routing_type, share_weight, num_iterations, squash', test_data)
 def test_module(batch_size, in_capsules, out_capsules, in_length, out_length, routing_type, share_weight,
                 num_iterations, squash):
-    if share_weight:
-        num_in_capsules = None
-    else:
-        num_in_capsules = in_capsules
+    num_in_capsules = None if share_weight else in_capsules
     module = CapsuleLinear(out_capsules, in_length, out_length, num_in_capsules, share_weight, routing_type,
                            num_iterations, squash=squash)
     x = torch.randn(batch_size, in_capsules, in_length)
-    y_cpu = module(x)
-    y_cuda = module.to('cuda')(x.to('cuda'))
+    y_cpu, prob_cpu = module(x)
+    y_cuda, prob_cuda = module.to('cuda')(x.to('cuda'))
     assert torch.allclose(y_cuda.cpu(), y_cpu)
+    assert torch.allclose(prob_cuda.cpu(), prob_cpu)
 
 
 @pytest.mark.parametrize('batch_size, in_capsules, out_capsules, in_length, out_length, '
@@ -77,8 +76,8 @@ def test_multigpu(batch_size, in_capsules, out_capsules, in_length, out_length, 
     else:
         w0 = torch.randn(out_capsules, in_capsules, out_length, in_length, device='cuda:0', requires_grad=True)
         w1 = torch.randn(out_capsules, in_capsules, out_length, in_length, device='cuda:1', requires_grad=True)
-    y0 = CL.capsule_linear(a0, w0, share_weight, routing_type, num_iterations, squash=squash)
+    y0, prob0 = CL.capsule_linear(a0, w0, share_weight, routing_type, num_iterations, squash=squash)
     go = torch.randn(y0.size(), device='cuda:0')
     y0.backward(go)
-    y1 = CL.capsule_linear(a1, w1, share_weight, routing_type, num_iterations, squash=squash)
+    y1, prob1 = CL.capsule_linear(a1, w1, share_weight, routing_type, num_iterations, squash=squash)
     y1.backward(go.detach().to('cuda:1'))

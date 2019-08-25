@@ -34,7 +34,6 @@ class CapsuleConv2d(nn.Module):
         kwargs (dict, optional): other args:
            - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
-           - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
 
     Shape:
         - Input: (Tensor): (N, C_{in}, H_{in}, W_{in})
@@ -67,17 +66,21 @@ class CapsuleConv2d(nn.Module):
         >>> # non-square kernels and unequal stride and with padding
         >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
         >>> input = torch.randn(20, 16, 20, 50)
-        >>> output = m(input)
+        >>> output, prob = m(input)
         >>> print(output.size())
+        torch.Size([20, 24, 9, 24])
+        >>> print(prob.size())
         torch.Size([20, 24, 9, 24])
         >>> input = torch.randn(10, 3, 14, 25)
         >>> output = m1(input)
         >>> print(output.size())
         torch.Size([10, 16, 10, 25])
+        >>> print(prob.size())
+        torch.Size([20, 24, 9, 24])
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
-                 share_weight=True, routing_type='k_means', num_iterations=3, bias=True, squash=True, **kwargs):
+                 share_weight=True, routing_type='k_means', num_iterations=3, bias=True, squash=False, **kwargs):
         super(CapsuleConv2d, self).__init__()
         if in_channels % in_length != 0:
             raise ValueError('Expected in_channels must be divisible by in_length.')
@@ -151,7 +154,6 @@ class CapsuleLinear(nn.Module):
          kwargs (dict, optional): other args:
             - similarity (str, optional): metric of similarity between capsules, it only works for 'k_means' routing
                 -- options: ['dot', 'cosine', 'tonimoto', 'pearson']
-            - return_prob (bool, optional): return output capsules' prob or not, it works for all routing
 
      Shape:
          - Input: (Tensor): (N, in_capsules, in_length)
@@ -171,15 +173,17 @@ class CapsuleLinear(nn.Module):
      Examples::
          >>> import torch
          >>> from capsule_layer import CapsuleLinear
-         >>> m = CapsuleLinear(3, 4, 5, 6, share_weight=False, num_iterations=5, return_prob=True, squash=False)
+         >>> m = CapsuleLinear(3, 4, 5, 6, share_weight=False, num_iterations=5)
          >>> input = torch.randn(2, 6, 4)
-         >>> output = m(input)
+         >>> output, prob = m(input)
          >>> print(output.size())
          torch.Size([2, 3, 5])
+         >>> print(prob.size())
+         torch.Size([2, 3, 6])
      """
 
     def __init__(self, out_capsules, in_length, out_length, in_capsules=None, share_weight=True,
-                 routing_type='k_means', num_iterations=3, bias=True, squash=True, **kwargs):
+                 routing_type='k_means', num_iterations=3, bias=True, squash=False, **kwargs):
         super(CapsuleLinear, self).__init__()
         if num_iterations < 1:
             raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))

@@ -27,7 +27,7 @@ w = torch.randn(2, 8, 4, 3, 5)
 if torch.cuda.is_available():
     x, w = x.to('cuda'), w.to('cuda')
 # routing_type options: ['dynamic', 'k_means']
-y = capsule_cov2d(x, w, stride=1, padding=1, routing_type='k_means')
+y, prob = capsule_cov2d(x, w, stride=1, padding=1, routing_type='k_means')
 ```
 or with modules interface:
 ```python
@@ -37,7 +37,7 @@ x = torch.randn(4, 8, 28, 50)
 module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means', bias=False)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
-y = module(x)
+y, prob = module(x)
 ```
 
 ### CapsuleLinear
@@ -49,7 +49,7 @@ w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
     x, w = x.to('cuda'), w.to('cuda')
 # routing_type options: ['dynamic', 'k_means']
-y = capsule_linear(x, w, share_weight=True, routing_type='dynamic')
+y, prob = capsule_linear(x, w, share_weight=True, routing_type='dynamic')
 ```
 or with modules interface:
 ```python
@@ -59,7 +59,7 @@ x = torch.randn(64, 128, 8)
 module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3, bias=False)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
-y = module(x)
+y, prob = module(x)
 ```
 
 ### Routing Algorithm
@@ -70,7 +70,7 @@ import capsule_layer.functional as F
 x = torch.randn(64, 10, 128, 8)
 if torch.cuda.is_available():
     x = x.to('cuda')
-y, prob = F.dynamic_routing(x, num_iterations=10, return_prob=True)
+y, prob = F.dynamic_routing(x, num_iterations=10)
 ```
 * k-means routing
 ```python
@@ -80,7 +80,7 @@ x = torch.randn(64, 5, 64, 8)
 if torch.cuda.is_available():
     x = x.to('cuda')
 # similarity options: ['dot', 'cosine', 'tonimoto', 'pearson']
-y = F.k_means_routing(x, num_iterations=100, similarity='tonimoto')
+y, prob = F.k_means_routing(x, num_iterations=100, similarity='tonimoto', reduce=False)
 ```
 
 ### Similarity Algorithm

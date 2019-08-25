@@ -72,29 +72,23 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
         bias = bias.view(1, 1, 1, 1, *bias.size())
         bias = bias.permute(0, 1, 2, 4, 3, 5).contiguous()
 
+    # fix reduce as False
+    kwargs['reduce'] = False
     if routing_type == 'dynamic':
-        if kwargs.__contains__('return_prob') and kwargs['return_prob']:
-            out, probs = dynamic_routing(priors, bias, num_iterations, **kwargs)
-        else:
-            # [batch_size, out_height, out_width, out_capsules, out_length]
-            out = dynamic_routing(priors, bias, num_iterations, **kwargs)
+        # [batch_size, out_height, out_width, out_capsules, in_capsules, out_length]
+        out, probs = dynamic_routing(priors, bias, num_iterations, **kwargs)
     elif routing_type == 'k_means':
-        if kwargs.__contains__('return_prob') and kwargs['return_prob']:
-            out, probs = k_means_routing(priors, bias, num_iterations, **kwargs)
-        else:
-            out = k_means_routing(priors, bias, num_iterations, **kwargs)
+        out, probs = k_means_routing(priors, bias, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    out = _squash(out) if squash is True else out
+    # TODO
+    out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
     # [batch_size, out_height, out_width, out_channels]
     out = out.view(*out.size()[:3], -1)
     # [batch_size, out_channels, out_height, out_width]
     out = out.permute(0, 3, 1, 2).contiguous()
-    if kwargs.__contains__('return_prob') and kwargs['return_prob']:
-        return out, probs
-    else:
-        return out
+    return out, probs
 
 
 def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num_iterations=3, bias=None, squash=True,
@@ -139,46 +133,40 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
         bias = bias.view(1, *bias.size(), 1)
         bias = bias.permute(0, 1, 3, 2).contiguous()
 
+    # fix reduce as False
+    kwargs['reduce'] = False
     if routing_type == 'dynamic':
-        if kwargs.__contains__('return_prob') and kwargs['return_prob']:
-            out, probs = dynamic_routing(priors, bias, num_iterations, **kwargs)
-        else:
-            # [batch_size, out_capsules, out_length]
-            out = dynamic_routing(priors, bias, num_iterations, **kwargs)
+        # [batch_size, out_capsules, in_capsules, out_length]
+        out, probs = dynamic_routing(priors, bias, num_iterations, **kwargs)
     elif routing_type == 'k_means':
-        if kwargs.__contains__('return_prob') and kwargs['return_prob']:
-            out, probs = k_means_routing(priors, bias, num_iterations, **kwargs)
-        else:
-            out = k_means_routing(priors, bias, num_iterations, **kwargs)
+        out, probs = k_means_routing(priors, bias, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    out = _squash(out) if squash is True else out
-    if kwargs.__contains__('return_prob') and kwargs['return_prob']:
-        return out, probs
-    else:
-        return out
+    # TODO
+    out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
+    return out, probs
 
 
-def dynamic_routing(input, bias=None, num_iterations=3, return_prob=False):
+def dynamic_routing(input, bias=None, num_iterations=3, reduce=True):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-3)
-        output = (probs * input).sum(dim=-2, keepdim=True)
+        if not reduce and r == num_iterations - 1:
+            output = (probs * input)
+        else:
+            output = (probs * input).sum(dim=-2, keepdim=True)
         if bias is not None:
             output = output + bias
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
-    if return_prob:
-        return output.squeeze(dim=-2), probs.mean(dim=-1)
-    else:
-        return output.squeeze(dim=-2)
+    return output.squeeze(dim=-2) if reduce else output, probs.mean(dim=-1)
 
 
-def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', return_prob=False):
+def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', reduce=True):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     output = input.sum(dim=-2, keepdim=True) / input.size(-3)
@@ -195,13 +183,13 @@ def k_means_routing(input, bias=None, num_iterations=3, similarity='dot', return
             raise NotImplementedError(
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=-3)
-        output = (probs * input).sum(dim=-2, keepdim=True)
+        if not reduce and r == num_iterations - 1:
+            output = (probs * input)
+        else:
+            output = (probs * input).sum(dim=-2, keepdim=True)
         if bias is not None:
             output = output + bias
-    if return_prob:
-        return output.squeeze(dim=-2), probs.squeeze(dim=-1)
-    else:
-        return output.squeeze(dim=-2)
+    return output.squeeze(dim=-2) if reduce else output, probs.squeeze(dim=-1)
 
 
 def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):
