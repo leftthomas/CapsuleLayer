@@ -114,13 +114,17 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     # obtain original probs
     re_weight = weight.view(-1, *weight.size()[-2:])
     re_weight = torch.stack([torch.pinverse(w) for w in re_weight], dim=0)
+    assert not torch.isnan(re_weight).any()
     if share_weight:
         re_weight = re_weight.view(weight.size(0), *re_weight.size()[-2:])
         revers = (re_weight[None, :, None, :, :] @ out[:, :, :, :, None]).squeeze(dim=-1)
+        assert not torch.isnan(revers).any()
     else:
         re_weight = re_weight.view(*weight.size()[:2], *re_weight.size()[-2:])
         revers = (re_weight[None, :, :, :, :] @ out[:, :, :, :, None]).squeeze(dim=-1)
+        assert not torch.isnan(revers).any()
     probs = (revers / input[:, None, :, :]).mean(dim=-1)
+    assert not torch.isnan(probs).any()
     out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
     return out, probs
 
