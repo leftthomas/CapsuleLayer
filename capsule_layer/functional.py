@@ -53,17 +53,16 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     out_w = math.floor((input.size(3) + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1)
     priors = priors.view(priors.size(0), out_h, out_w, *priors.size()[-3:])
 
-    # fix reduce as False
-    kwargs['reduce'] = False
     if routing_type == 'dynamic':
-        # [batch_size, out_height, out_width, out_capsules, in_capsules, out_length]
-        out, probs = dynamic_routing(priors, num_iterations, **kwargs)
+        # [batch_size, out_height, out_width, out_capsules, out_length]
+        # [batch_size, out_height, out_width, out_capsules, in_capsules]
+        out, probs = dynamic_routing(priors, num_iterations)
     elif routing_type == 'k_means':
         out, probs = k_means_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
+    out = _squash(out) if squash is True else out
     # [batch_size, out_height, out_width, out_channels]
     out = out.view(*out.size()[:3], -1)
     # [batch_size, out_channels, out_height, out_width]
@@ -100,37 +99,33 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     else:
         priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
 
-    # fix reduce as False
-    kwargs['reduce'] = False
     if routing_type == 'dynamic':
-        # [batch_size, out_capsules, in_capsules, out_length]
-        out, probs = dynamic_routing(priors, num_iterations, **kwargs)
+        # [batch_size, out_capsules, out_length]
+        # [batch_size, out_capsules, in_capsules]
+        out, probs = dynamic_routing(priors, num_iterations)
     elif routing_type == 'k_means':
         out, probs = k_means_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
+    out = _squash(out) if squash is True else out
     return out, probs
 
 
-def dynamic_routing(input, num_iterations=3, reduce=True):
+def dynamic_routing(input, num_iterations=3):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     logits = torch.zeros_like(input)
     for r in range(num_iterations):
         probs = F.softmax(logits, dim=-3)
-        if not reduce and r == num_iterations - 1:
-            output = (probs * input)
-        else:
-            output = (probs * input).sum(dim=-2, keepdim=True)
+        output = (probs * input).sum(dim=-2, keepdim=True)
         if r != num_iterations - 1:
             output = _squash(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
-    return output.squeeze(dim=-2) if reduce else output, probs.mean(dim=-1)
+    return output.squeeze(dim=-2), probs.mean(dim=-1)
 
 
-def k_means_routing(input, num_iterations=3, similarity='dot', reduce=True):
+def k_means_routing(input, num_iterations=3, similarity='dot'):
     if num_iterations < 1:
         raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     output = input.sum(dim=-2, keepdim=True) / input.size(-3)
@@ -147,11 +142,8 @@ def k_means_routing(input, num_iterations=3, similarity='dot', reduce=True):
             raise NotImplementedError(
                 '{} similarity is not implemented on k-means routing algorithm.'.format(similarity))
         probs = F.softmax(logits, dim=-3)
-        if not reduce and r == num_iterations - 1:
-            output = (probs * input)
-        else:
-            output = (probs * input).sum(dim=-2, keepdim=True)
-    return output.squeeze(dim=-2) if reduce else output, probs.squeeze(dim=-1)
+        output = (probs * input).sum(dim=-2, keepdim=True)
+    return output.squeeze(dim=-2), probs.squeeze(dim=-1)
 
 
 def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):

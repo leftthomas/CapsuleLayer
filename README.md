@@ -80,7 +80,7 @@ x = torch.randn(64, 5, 64, 8)
 if torch.cuda.is_available():
     x = x.to('cuda')
 # similarity options: ['dot', 'cosine', 'tonimoto', 'pearson']
-y, prob = F.k_means_routing(x, num_iterations=100, similarity='tonimoto', reduce=False)
+y, prob = F.k_means_routing(x, num_iterations=100, similarity='tonimoto')
 ```
 
 ### Similarity Algorithm

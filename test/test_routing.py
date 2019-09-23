@@ -3,9 +3,8 @@ import torch
 
 from capsule_layer.functional import dynamic_routing, k_means_routing
 
-kwargs_data = {'dynamic': [{'reduce': reduce} for reduce in [True, False]],
-               'k_means': [{'similarity': similarity, 'reduce': reduce} for similarity in
-                           ['dot', 'cosine', 'tonimoto', 'pearson'] for reduce in [True, False]]}
+kwargs_data = {'dynamic': [],
+               'k_means': [{'similarity': similarity} for similarity in ['dot', 'cosine', 'tonimoto', 'pearson']]}
 routing_funcs = {'dynamic': dynamic_routing, 'k_means': k_means_routing}
 
 test_data = [(batch_size, out_capsules, in_capsules, out_length, routing_type, kwargs, num_iterations) for batch_size
