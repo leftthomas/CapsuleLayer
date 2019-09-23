@@ -105,14 +105,12 @@ class CapsuleConv2d(nn.Module):
         self.kwargs = kwargs
 
         if self.share_weight:
-            weight = torch.rand(out_channels // out_length, out_length, 1, *kernel_size)
-            weight = weight.repeat_interleave(in_length, dim=2)
-            self.weight = Parameter(weight)
+            self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
         else:
-            weight = torch.rand(out_channels // out_length, 1, out_length, 1, *kernel_size)
-            weight = weight.repeat_interleave(in_length, dim=3)
-            weight = weight.repeat_interleave(in_channels // in_length, dim=1)
-            self.weight = Parameter(weight)
+            self.weight = Parameter(
+                torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
+
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
@@ -188,21 +186,14 @@ class CapsuleLinear(nn.Module):
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
-                weight = torch.rand(1, in_length, out_capsules * out_length)
-                nn.init.xavier_uniform_(weight)
-                weight = weight.permute(2, 1, 0).contiguous()
-                weight = weight.view(out_capsules, out_length, in_length)
-                self.weight = Parameter(weight)
+                self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                weight = torch.rand(in_capsules, in_length, out_capsules * out_length)
-                nn.init.xavier_uniform_(weight)
-                weight = weight.permute(2, 0, 1).contiguous()
-                weight = weight.view(out_capsules, out_length, in_capsules, in_length)
-                weight = weight.permute(0, 2, 1, 3).contiguous()
-                self.weight = Parameter(weight)
+                self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
+
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,

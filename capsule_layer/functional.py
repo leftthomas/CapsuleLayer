@@ -63,7 +63,6 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    # TODO
     out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
     # [batch_size, out_height, out_width, out_channels]
     out = out.view(*out.size()[:3], -1)
@@ -111,18 +110,6 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    # obtain original probs
-    re_weight = weight.view(-1, *weight.size()[-2:])
-    re_weight = torch.stack([torch.pinverse(w) for w in re_weight], dim=0)
-    if share_weight:
-        re_weight = re_weight.view(weight.size(0), *re_weight.size()[-2:])
-        revers = (re_weight[None, :, None, :, :] @ out[:, :, :, :, None]).squeeze(dim=-1)
-    else:
-        re_weight = re_weight.view(*weight.size()[:2], *re_weight.size()[-2:])
-        revers = (re_weight[None, :, :, :, :] @ out[:, :, :, :, None]).squeeze(dim=-1)
-    probs = (revers / input[:, None, :, :]).mean(dim=-1)
-    zero_probs = torch.zeros_like(probs)
-    probs = torch.where(torch.isnan(probs), zero_probs, probs)
     out = _squash(out.sum(dim=-2)) if squash is True else out.sum(dim=-2)
     return out, probs
 
