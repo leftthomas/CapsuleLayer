@@ -22,7 +22,7 @@ pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 ```python
 import torch
 from capsule_layer import capsule_cov2d
-x = torch.randn(4, 8, 28, 50)
+x = torch.rand(4, 8, 28, 50)
 w = torch.randn(2, 8, 4, 3, 5)
 if torch.cuda.is_available():
     x, w = x.to('cuda'), w.to('cuda')
@@ -33,7 +33,7 @@ or with modules interface:
 ```python
 import torch
 from capsule_layer import CapsuleConv2d
-x = torch.randn(4, 8, 28, 50)
+x = torch.rand(4, 8, 28, 50)
 module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means')
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
@@ -44,7 +44,7 @@ y, prob = module(x)
 ```python
 import torch
 from capsule_layer import capsule_linear
-x = torch.randn(64, 128, 8)
+x = torch.rand(64, 128, 8)
 w = torch.randn(10, 16, 8)
 if torch.cuda.is_available():
     x, w = x.to('cuda'), w.to('cuda')
@@ -55,7 +55,7 @@ or with modules interface:
 ```python
 import torch
 from capsule_layer import CapsuleLinear
-x = torch.randn(64, 128, 8)
+x = torch.rand(64, 128, 8)
 module = CapsuleLinear(out_capsules=10, in_length=8, out_length=16, in_capsules=None, routing_type='dynamic', num_iterations=3)
 if torch.cuda.is_available():
     x, module = x.to('cuda'), module.to('cuda')
@@ -67,7 +67,7 @@ y, prob = module(x)
 ```python
 import torch
 import capsule_layer.functional as F
-x = torch.randn(64, 10, 128, 8)
+x = torch.rand(64, 10, 128, 8)
 if torch.cuda.is_available():
     x = x.to('cuda')
 y, prob = F.dynamic_routing(x, num_iterations=10)
@@ -76,7 +76,7 @@ y, prob = F.dynamic_routing(x, num_iterations=10)
 ```python
 import torch
 import capsule_layer.functional as F
-x = torch.randn(64, 5, 64, 8)
+x = torch.rand(64, 5, 64, 8)
 if torch.cuda.is_available():
     x = x.to('cuda')
 # similarity options: ['dot', 'cosine', 'tonimoto', 'pearson']
@@ -88,8 +88,8 @@ y, prob = F.k_means_routing(x, num_iterations=100, similarity='tonimoto')
 ```python
 import torch
 import capsule_layer.functional as F
-x1 = torch.randn(64, 16)
-x2 = torch.randn(1, 16)
+x1 = torch.rand(64, 16)
+x2 = torch.rand(1, 16)
 if torch.cuda.is_available():
     x1, x2 = x1.to('cuda'), x2.to('cuda')
 y = F.tonimoto_similarity(x1, x2, dim=-1)
@@ -98,8 +98,8 @@ y = F.tonimoto_similarity(x1, x2, dim=-1)
 ```python
 import torch
 import capsule_layer.functional as F
-x1 = torch.randn(32, 8, 16)
-x2 = torch.randn(32, 8, 1)
+x1 = torch.rand(32, 8, 16)
+x2 = torch.rand(32, 8, 1)
 if torch.cuda.is_available():
     x1, x2 = x1.to('cuda'), x2.to('cuda')
 y = F.pearson_similarity(x1, x2, dim=1)

@@ -20,7 +20,7 @@ test_data = [(batch_size, height, width, in_channels, out_channels, kernel_size_
                          test_data)
 def test_function(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
                   out_length, stride, padding, dilation, routing_type, num_iterations, squash):
-    x_cpu = torch.randn(batch_size, in_channels, height, width, dtype=torch.double, requires_grad=True)
+    x_cpu = torch.rand(batch_size, in_channels, height, width, dtype=torch.double, requires_grad=True)
     w_cpu = torch.randn(out_channels // out_length, out_length, in_length, kernel_size_h, kernel_size_w,
                         dtype=torch.double, requires_grad=True)
     x_gpu = x_cpu.detach().to('cuda').requires_grad_()
@@ -32,7 +32,7 @@ def test_function(batch_size, height, width, in_channels, out_channels, kernel_s
     assert torch.allclose(y_fast.cpu(), y_ref)
     assert torch.allclose(prob_fast.cpu(), prob_ref)
 
-    go_cpu = torch.randn(y_ref.size(), dtype=torch.double)
+    go_cpu = torch.rand(y_ref.size(), dtype=torch.double)
     go_gpu = go_cpu.detach().to('cuda')
     y_fast.backward(go_gpu)
     gx_fast = x_gpu.grad.clone()
@@ -59,7 +59,7 @@ def test_module(batch_size, height, width, in_channels, out_channels, kernel_siz
                 out_length, stride, padding, dilation, routing_type, num_iterations, squash):
     module = CapsuleConv2d(in_channels, out_channels, (kernel_size_h, kernel_size_w), in_length, out_length, stride,
                            padding, dilation, routing_type=routing_type, num_iterations=num_iterations, squash=squash)
-    x = torch.randn(batch_size, in_channels, height, width)
+    x = torch.rand(batch_size, in_channels, height, width)
     y_cpu, prob_cpu = module(x)
     y_cuda, prob_cuda = module.to('cuda')(x.to('cuda'))
     assert torch.allclose(y_cuda.cpu(), y_cpu)
@@ -71,15 +71,15 @@ def test_module(batch_size, height, width, in_channels, out_channels, kernel_siz
                          test_data)
 def test_multigpu(batch_size, height, width, in_channels, out_channels, kernel_size_h, kernel_size_w, in_length,
                   out_length, stride, padding, dilation, routing_type, num_iterations, squash):
-    a0 = torch.randn(batch_size, in_channels, height, width, device='cuda:0', requires_grad=True)
-    a1 = torch.randn(batch_size, in_channels, height, width, device='cuda:1', requires_grad=True)
+    a0 = torch.rand(batch_size, in_channels, height, width, device='cuda:0', requires_grad=True)
+    a1 = torch.rand(batch_size, in_channels, height, width, device='cuda:1', requires_grad=True)
     w0 = torch.randn(out_channels // out_length, out_length, in_length, kernel_size_h, kernel_size_w, device='cuda:0',
                      requires_grad=True)
     w1 = torch.randn(out_channels // out_length, out_length, in_length, kernel_size_h, kernel_size_w, device='cuda:1',
                      requires_grad=True)
     y0, prob0 = CL.capsule_cov2d(a0, w0, stride, padding, dilation, routing_type=routing_type,
                                  num_iterations=num_iterations, squash=squash)
-    go = torch.randn(y0.size(), device='cuda:0')
+    go = torch.rand(y0.size(), device='cuda:0')
     y0.backward(go)
     y1, prob1 = CL.capsule_cov2d(a1, w1, stride, padding, dilation, routing_type=routing_type,
                                  num_iterations=num_iterations, squash=squash)

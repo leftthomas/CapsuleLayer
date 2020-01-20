@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import nn
 from torch.nn.modules.utils import _pair
@@ -61,13 +63,13 @@ class CapsuleConv2d(nn.Module):
         >>> m = CapsuleConv2d(16, 24, 3, 4, 6, stride=2)
         >>> # non-square kernels and unequal stride and with padding
         >>> m1 = CapsuleConv2d(3, 16, (3, 5), 3, 4, stride=(2, 1), padding=(4, 2))
-        >>> input = torch.randn(20, 16, 20, 50)
+        >>> input = torch.rand(20, 16, 20, 50)
         >>> output, prob = m(input)
         >>> print(output.size())
         torch.Size([20, 24, 9, 24])
         >>> print(prob.size())
         torch.Size([20, 24, 9, 24])
-        >>> input = torch.randn(10, 3, 14, 25)
+        >>> input = torch.rand(10, 3, 14, 25)
         >>> output = m1(input)
         >>> print(output.size())
         torch.Size([10, 16, 10, 25])
@@ -105,12 +107,14 @@ class CapsuleConv2d(nn.Module):
         self.kwargs = kwargs
 
         if self.share_weight:
-            self.weight = Parameter(torch.Tensor(out_channels // out_length, out_length, in_length, *kernel_size))
+            self.weight = Parameter(
+                torch.normal(mean=0.0, std=math.sqrt(1.0 / out_length),
+                             size=(out_channels // out_length, out_length, in_length, *kernel_size)))
         else:
             self.weight = Parameter(
-                torch.Tensor(out_channels // out_length, in_channels // in_length, out_length, in_length, *kernel_size))
-
-        nn.init.xavier_uniform_(self.weight)
+                torch.normal(mean=0.0, std=math.sqrt(1.0 / out_length),
+                             size=(out_channels // out_length, in_channels // in_length, out_length, in_length,
+                                   *kernel_size)))
 
     def forward(self, input):
         return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
@@ -160,7 +164,7 @@ class CapsuleLinear(nn.Module):
          >>> import torch
          >>> from capsule_layer import CapsuleLinear
          >>> m = CapsuleLinear(3, 4, 5, 6, share_weight=False, routing_type='dynamic', num_iterations=50)
-         >>> input = torch.randn(2, 6, 4)
+         >>> input = torch.rand(2, 6, 4)
          >>> output, prob = m(input)
          >>> print(output.size())
          torch.Size([2, 3, 5])
@@ -186,14 +190,14 @@ class CapsuleLinear(nn.Module):
             if in_capsules is not None:
                 raise ValueError('Expected in_capsules must be None.')
             else:
-                self.weight = Parameter(torch.Tensor(out_capsules, out_length, in_length))
+                self.weight = Parameter(torch.normal(mean=0.0, std=math.sqrt(1.0 / out_length),
+                                                     size=(out_capsules, out_length, in_length)))
         else:
             if in_capsules is None:
                 raise ValueError('Expected in_capsules must be int.')
             else:
-                self.weight = Parameter(torch.Tensor(out_capsules, in_capsules, out_length, in_length))
-
-        nn.init.xavier_uniform_(self.weight)
+                self.weight = Parameter(torch.normal(mean=0.0, std=math.sqrt(1.0 / out_length),
+                                                     size=(out_capsules, in_capsules, out_length, in_length)))
 
     def forward(self, input):
         return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
