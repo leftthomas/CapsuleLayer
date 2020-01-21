@@ -34,40 +34,46 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     padding = _pair(padding)
     dilation = _pair(dilation)
 
+    out_h = math.floor((input.size(2) + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0] + 1)
+    out_w = math.floor((input.size(3) + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1)
+
     inp = F.unfold(input, weight.size()[-2:], dilation, padding, stride)
-    # [batch_size, num_block, in_length, kernel_size[0], kernel_size[1], in_capsules]
-    inp = inp.view(input.size(0), input.size(1) // weight.size(-3), *weight.size()[-3:], -1)
-    # [batch_size, in_capsules, num_block, kernel_size[0], kernel_size[1], in_length]
-    inp = inp.permute(0, 5, 1, 3, 4, 2).contiguous()
+    # [batch_size, in_group, in_length, kernel_size[0], kernel_size[1], out_height, out_width]
+    inp = inp.view(input.size(0), input.size(1) // weight.size(-3), *weight.size()[-3:], out_h, out_w)
+    # [batch_size, out_height, out_width, in_group, kernel_size[0], kernel_size[1], in_length]
+    inp = inp.permute(0, 5, 6, 1, 3, 4, 2).contiguous()
 
     if share_weight:
         weight = weight.permute(0, 3, 4, 1, 2).contiguous()
-        # [batch_size, out_capsules, in_capsules, block, kernel_size[0], kernel_size[1], out_length]
-        priors = (weight[None, :, None, None, :, :, :, :] @ inp[:, None, :, :, :, :, :, None]).squeeze(dim=-1)
+        # [batch_size, out_height, out_width, in_group, out_group, kernel_size[0], kernel_size[1], out_length]
+        priors = torch.matmul(weight.view(1, 1, 1, 1, *weight.size()), inp.unsqueeze(dim=4).unsqueeze(dim=-1)) \
+            .squeeze(dim=-1)
     else:
-        weight = weight.permute(0, 1, 4, 5, 2, 3).contiguous()
-        priors = (weight[None, :, :, None, :, :, :, :] @ inp[:, None, :, :, :, :, :, None]).squeeze(dim=-1)
+        weight = weight.permute(1, 0, 4, 5, 2, 3).contiguous()
+        priors = torch.matmul(weight.view(1, 1, 1, *weight.size()), inp.unsqueeze(dim=4).unsqueeze(dim=-1)) \
+            .squeeze(dim=-1)
 
-    priors = priors.permute(0, 3, 1, 2, 4, 5, 6).contiguous()
-    priors = priors.view(*priors.size()[:3], -1, priors.size(-1))
-    out_h = math.floor((input.size(2) + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0] + 1)
-    out_w = math.floor((input.size(3) + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1)
-    priors = priors.view(priors.size(0), out_h, out_w, *priors.size()[-3:])
+    # [batch_size, out_height, out_width, in_group, out_group, kernel_size[0]*kernel_size[1], out_length]
+    priors = priors.view(*priors.size()[:5], -1, priors.size(-1))
 
     if routing_type == 'dynamic':
-        # [batch_size, out_height, out_width, out_capsules, out_length]
-        # [batch_size, out_height, out_width, out_capsules, in_capsules]
+        # [batch_size, out_height, out_width, in_group, out_group, out_length]
+        # [batch_size, out_height, out_width, in_group, out_group, kernel_size[0]*kernel_size[1]]
         out, probs = dynamic_routing(priors, num_iterations)
     elif routing_type == 'k_means':
         out, probs = k_means_routing(priors, num_iterations, **kwargs)
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
+    out = out.sum(dim=-3)
     out = _squash(out) if squash is True else out
     # [batch_size, out_height, out_width, out_channels]
     out = out.view(*out.size()[:3], -1)
     # [batch_size, out_channels, out_height, out_width]
     out = out.permute(0, 3, 1, 2).contiguous()
+    # [batch_size, out_height, out_width, in_group, out_group, kernel_size[0], kernel_size[1]]
+    probs = probs.view(*probs.size()[:5], kernel_size[0], kernel_size[1])
+
     return out, probs
 
 

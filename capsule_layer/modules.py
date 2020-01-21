@@ -67,14 +67,10 @@ class CapsuleConv2d(nn.Module):
         >>> output, prob = m(input)
         >>> print(output.size())
         torch.Size([20, 24, 9, 24])
-        >>> print(prob.size())
-        torch.Size([20, 24, 9, 24])
         >>> input = torch.rand(10, 3, 14, 25)
-        >>> output = m1(input)
+        >>> output, prob = m1(input)
         >>> print(output.size())
         torch.Size([10, 16, 10, 25])
-        >>> print(prob.size())
-        torch.Size([20, 24, 9, 24])
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, in_length, out_length, stride=1, padding=0, dilation=1,
