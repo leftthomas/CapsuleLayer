@@ -22,12 +22,12 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
         raise ValueError('Expected weight tensor should be contiguous, got non-contiguous tensor instead.')
     if input.size(1) % weight.size(-3) != 0:
         raise ValueError('Expected in_channels must be divisible by in_length.')
-    if num_iterations < 1:
-        raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
     if not share_weight and input.size(1) != (weight.size(1) * weight.size(3)):
         raise ValueError('Expected input tensor has the same in_channels as weight tensor, got {} in_channels '
                          'in input tensor, {} in_channels in weight tensor.'.format(input.size(1),
                                                                                     weight.size(1) * weight.size(3)))
+    if num_iterations < 1:
+        raise ValueError('num_iterations has to be greater than 0, but got {}.'.format(num_iterations))
 
     kernel_size = (weight.size(-2), weight.size(-1))
     stride = _pair(stride)
@@ -35,9 +35,10 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
     dilation = _pair(dilation)
 
     inp = F.unfold(input, weight.size()[-2:], dilation, padding, stride)
+    # [batch_size, num_block, in_length, kernel_size[0], kernel_size[1], in_capsules]
     inp = inp.view(input.size(0), input.size(1) // weight.size(-3), *weight.size()[-3:], -1)
-    # [batch_size, in_capsules, block, kernel_size[0], kernel_size[1], in_length]
-    inp = inp.permute(0, 1, 5, 3, 4, 2).contiguous()
+    # [batch_size, in_capsules, num_block, kernel_size[0], kernel_size[1], in_length]
+    inp = inp.permute(0, 5, 1, 3, 4, 2).contiguous()
 
     if share_weight:
         weight = weight.permute(0, 3, 4, 1, 2).contiguous()
@@ -95,13 +96,13 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
 
     if share_weight:
         # [batch_size, out_capsules, in_capsules, out_length]
-        priors = (weight[None, :, None, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
+        priors = torch.matmul(weight.unsqueeze(dim=1).unsqueeze(dim=0), input.unsqueeze(dim=1).unsqueeze(dim=-1)) \
+            .squeeze(dim=-1)
     else:
-        priors = (weight[None, :, :, :, :] @ input[:, None, :, :, None]).squeeze(dim=-1)
+        priors = torch.matmul(weight.unsqueeze(dim=0), input.unsqueeze(dim=1).unsqueeze(dim=-1)).squeeze(dim=-1)
 
     if routing_type == 'dynamic':
-        # [batch_size, out_capsules, out_length]
-        # [batch_size, out_capsules, in_capsules]
+        # [batch_size, out_capsules, out_length], [batch_size, out_capsules, in_capsules]
         out, probs = dynamic_routing(priors, num_iterations)
     elif routing_type == 'k_means':
         out, probs = k_means_routing(priors, num_iterations, **kwargs)
@@ -156,7 +157,7 @@ def tonimoto_similarity(x1, x2, dim=-1, eps=1e-8):
 def pearson_similarity(x1, x2, dim=-1, eps=1e-8):
     centered_x1 = x1 - x1.mean(dim=dim, keepdim=True)
     centered_x2 = x2 - x2.mean(dim=dim, keepdim=True)
-    return F.cosine_similarity(centered_x1, centered_x2, dim=dim, eps=eps).unsqueeze(dim=-1)
+    return F.cosine_similarity(centered_x1, centered_x2, dim=dim, eps=eps).unsqueeze(dim=dim)
 
 
 def _squash(input, dim=-1):
