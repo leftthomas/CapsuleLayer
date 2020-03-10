@@ -5,7 +5,7 @@ from torch import nn
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
-import capsule_layer as CL
+import functional as F
 
 
 class CapsuleConv2d(nn.Module):
@@ -113,8 +113,8 @@ class CapsuleConv2d(nn.Module):
                                    *kernel_size)))
 
     def forward(self, input):
-        return CL.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
-                                self.routing_type, self.num_iterations, self.squash, **self.kwargs)
+        return F.capsule_cov2d(input, self.weight, self.stride, self.padding, self.dilation, self.share_weight,
+                               self.routing_type, self.num_iterations, self.squash, **self.kwargs)
 
     def __repr__(self):
         s = ('{name}({in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -196,8 +196,8 @@ class CapsuleLinear(nn.Module):
                                                      size=(out_capsules, in_capsules, out_length, in_length)))
 
     def forward(self, input):
-        return CL.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
-                                 self.squash, **self.kwargs)
+        return F.capsule_linear(input, self.weight, self.share_weight, self.routing_type, self.num_iterations,
+                                self.squash, **self.kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
