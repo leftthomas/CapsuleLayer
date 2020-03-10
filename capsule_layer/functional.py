@@ -66,7 +66,7 @@ def capsule_cov2d(input, weight, stride=1, padding=0, dilation=1, share_weight=T
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
     out = out.sum(dim=-3)
-    out = _squash(out) if squash is True else out
+    out = squash_fn(out) if squash is True else out
     # [batch_size, out_height, out_width, out_channels]
     out = out.view(*out.size()[:3], -1)
     # [batch_size, out_channels, out_height, out_width]
@@ -115,7 +115,7 @@ def capsule_linear(input, weight, share_weight=True, routing_type='k_means', num
     else:
         raise NotImplementedError('{} routing algorithm is not implemented.'.format(routing_type))
 
-    out = _squash(out) if squash is True else out
+    out = squash_fn(out) if squash is True else out
     return out, probs
 
 
@@ -127,7 +127,7 @@ def dynamic_routing(input, num_iterations=3):
         probs = F.softmax(logits, dim=-3)
         output = (probs * input).sum(dim=-2, keepdim=True)
         if r != num_iterations - 1:
-            output = _squash(output)
+            output = squash_fn(output)
             logits = logits + (input * output).sum(dim=-1, keepdim=True)
     return output.squeeze(dim=-2), probs.mean(dim=-1)
 
@@ -166,7 +166,7 @@ def pearson_similarity(x1, x2, dim=-1, eps=1e-8):
     return F.cosine_similarity(centered_x1, centered_x2, dim=dim, eps=eps).unsqueeze(dim=dim)
 
 
-def _squash(input, dim=-1):
+def squash_fn(input, dim=-1):
     norm = input.norm(p=2, dim=dim, keepdim=True)
     scale = norm / (1 + norm ** 2)
     return scale * input

@@ -1,5 +1,6 @@
-import capsule_layer as CL
 from torch.nn import Module
+
+import capsule_layer as CL
 
 
 class MultiStepRI(object):

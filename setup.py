@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.4.2'
+VERSION = '0.5.0'
 
 long_description = "PyTorch Capsule Layer, include conv2d and linear layers."
 
@@ -16,7 +16,8 @@ setup_info = dict(
     license='MIT',
 
     # Package info
-    packages=find_packages(),
+    packages=find_packages(exclude=('test',)),
+
     zip_safe=True
 )
 

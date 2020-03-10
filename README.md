@@ -21,6 +21,17 @@ pip install --upgrade git+https://github.com/leftthomas/CapsuleLayer.git@master
 ### CapsuleConv2d
 ```python
 import torch
+from capsule_layer import capsule_cov2d
+x = torch.rand(4, 8, 28, 50)
+w = torch.randn(2, 8, 4, 3, 5)
+if torch.cuda.is_available():
+    x, w = x.to('cuda'), w.to('cuda')
+# routing_type options: ['dynamic', 'k_means']
+y, prob = capsule_cov2d(x, w, stride=1, padding=1, routing_type='k_means')
+```
+or with modules interface:
+```python
+import torch
 from capsule_layer import CapsuleConv2d
 x = torch.rand(4, 8, 28, 50)
 module = CapsuleConv2d(in_channels=8, out_channels=16, kernel_size=(3, 5), in_length=4, out_length=8, stride=1, padding=1, routing_type='k_means')
@@ -30,6 +41,17 @@ y, prob = module(x)
 ```
 
 ### CapsuleLinear
+```python
+import torch
+from capsule_layer import capsule_linear
+x = torch.rand(64, 128, 8)
+w = torch.randn(10, 16, 8)
+if torch.cuda.is_available():
+    x, w = x.to('cuda'), w.to('cuda')
+# routing_type options: ['dynamic', 'k_means']
+y, prob = capsule_linear(x, w, share_weight=True, routing_type='dynamic')
+```
+or with modules interface:
 ```python
 import torch
 from capsule_layer import CapsuleLinear
